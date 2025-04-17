@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp, // Lock to portrait mode
+  ]).then((_) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+    );
+    runApp(const MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -212,7 +220,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.amber,
+              color: _pages[index]['color'],  // Changed from Colors.amber
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
@@ -241,7 +249,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // Skip button
         Positioned(
           top: 16,
-          right: 24,
+          right: 16,
           child: TextButton(
             onPressed: () {
               Navigator.pushReplacement(
@@ -249,10 +257,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 MaterialPageRoute(builder: (_) => const DashboardScreen()),
               );
             },
-            child: Text(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.all(8),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
               'Skip',
               style: TextStyle(
-                color: Colors.black.withOpacity(0.7),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -265,58 +276,69 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildLastOnboardingPage(BuildContext context, int index) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), // Increased vertical margin
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1), // Light cream color
+        color: Colors.white,
         borderRadius: BorderRadius.circular(30),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), // Adjusted padding
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 60),
-          // Title
-          Text(
-            _pages[index]['title'],
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          const SizedBox(height: 40), // Reduced top spacing
+          // Title styling
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Just',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  height: 1.1,
+                ),
+              ),
+              Text(
+                'For You',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 20), // Added spacing
+          
+          Expanded(
+            child: Image.asset(
+              _pages[index]['image'],
+              fit: BoxFit.contain,
             ),
           ),
           
-          Expanded(
-            child: Center(
-              // Group of character images
-              child: Image.asset(
-                _pages[index]['image'],
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.image_not_supported,
-                    size: 80,
-                    color: Colors.black.withOpacity(0.5),
-                  );
-                },
-              ),
-            ),
-          ),
+          const SizedBox(height: 24), // Added consistent spacing
           
           // Subtitle
           Text(
             _pages[index]['subtitle'],
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               color: Colors.black.withOpacity(0.6),
+              height: 1.3,
             ),
           ),
-          const SizedBox(height: 40),
           
-          // Progress indicators and Get Started button
+          const SizedBox(height: 32), // Adjusted bottom spacing
+          
+          // Dots and button row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Progress dots
+              // Unified dots styling
               Row(
                 children: List.generate(
                   _pages.length,
@@ -333,7 +355,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
               ),
-              
               // Get Started button
               ElevatedButton(
                 onPressed: () {
@@ -360,7 +381,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24), // Reduced bottom padding
         ],
       ),
     );
