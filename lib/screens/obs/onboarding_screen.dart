@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +31,17 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Precache all images after the first frame
+      for (var page in _pages) {
+        precacheImage(AssetImage(page['image']), context);
+      }
+    });
+  }
 
   final List<Map<String, dynamic>> _pages = [
     {
@@ -68,20 +80,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.yellow, // Background outside the card
-      body: SafeArea(
-        child: PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) => setState(() => _currentPage = index),
-          itemCount: _pages.length,
-          itemBuilder: (context, index) {
-            if (_pages[index]['isLastPage'] == true) {
-              return _buildLastOnboardingPage(context, index);
-            } else {
-              return _buildOnboardingPage(context, index);
-            }
-          },
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: _pages[_currentPage]['color'],
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: _pages[_currentPage]['color'],
+        body: SafeArea(
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemCount: _pages.length,
+            itemBuilder: (context, index) {
+              if (_pages[index]['isLastPage'] == true) {
+                return _buildLastOnboardingPage(context, index);
+              } else {
+                return _buildOnboardingPage(context, index);
+              }
+            },
+          ),
         ),
       ),
     );
@@ -100,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           bottom: 0,
           left: 0,
           right: 0,
-          height: MediaQuery.of(context).size.height * 0.28, // Original height
+          height: MediaQuery.of(context).size.height * 0.40, // Increased from 0.28
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -136,9 +156,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         
-        // Mascot Image
+        // Mascot Image - adjusted position
         Positioned(
-          top: MediaQuery.of(context).size.height * 0.15,
+          top: MediaQuery.of(context).size.height * 0.08, // Adjusted from 0.15
           left: 0,
           right: 0,
           child: Image.asset(
