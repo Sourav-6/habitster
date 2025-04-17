@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/obs/onboarding_screen.dart'; // Import the new file
 
 void main() {
   runApp(const MyApp());
@@ -10,80 +11,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Habitster',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const WelcomeScreen(),
-    );
-  }
-}
-
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Set background to dark
-      appBar: AppBar(
-        title: const Text('Welcome'),
-      ),
-      body: Center(
-        child: Text(
-          'Hey welcome to habitster',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.yellow, // Set text color to yellow
-                fontWeight: FontWeight.bold, // Make text bold
-              ),
+        primaryColor: const Color(0xFFFFEA00), // Lemon Zest
+        scaffoldBackgroundColor: const Color(0xFFFFFDE7), // Light Cream
+        fontFamily: 'Poppins', // Added font
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(color: Color(0xFF212121), fontSize: 28), // Graphite
+          bodyMedium: TextStyle(color: Color(0xFF757575), fontSize: 16), // Cool Grey
         ),
       ),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+      home: const OnboardingScreen(), // Use the new onboarding screen
     );
   }
 }
