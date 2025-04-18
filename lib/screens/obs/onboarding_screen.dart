@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart'; // Added Lottie package
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,49 +37,124 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {  // Changed from SingleTickerProviderStateMixin
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  List<LottieComposition?> _cachedAnimations = [];
+  bool _isLoading = true;
+
+  late AnimationController _logoController;
+  late Animation<double> _logoAnimation;
+
+  late AnimationController _textController;
+  late Animation<double> _textOpacity;
+  String _displayText = '';
+  final String _welcomeText = 'Welcome,\nthe journey to a better you begins now';
+
+  final List<String> _welcomeLines = [
+    'Ready to',
+    'transform',
+    'your life?'
+  ];
+  List<Animation<double>> _lineAnimations = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Precache all images after the first frame
-      for (var page in _pages) {
-        precacheImage(AssetImage(page['image']), context);
-      }
-    });
+    _precacheAnimations();
+    
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _logoAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 1.2)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 50.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.2, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 50.0,
+      ),
+    ]).animate(_logoController);
+
+    _logoController.forward();
+
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    // Create staggered animations for each line
+    _lineAnimations = _welcomeLines.asMap().entries.map((entry) {
+      return Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _textController,
+          curve: Interval(
+            entry.key * 0.2, // Stagger start times
+            (entry.key * 0.2) + 0.6,
+            curve: Curves.easeOut,
+          ),
+        ),
+      );
+    }).toList();
+
+    _startTextAnimation();
+  }
+
+  void _startTextAnimation() async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      _textController.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _logoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _precacheAnimations() async {
+    setState(() => _isLoading = true);
+    _cachedAnimations = await Future.wait(
+      _pages.map((page) => AssetLottie(page['animation']).load()).toList(),
+    );
+    setState(() => _isLoading = false);
   }
 
   final List<Map<String, dynamic>> _pages = [
     {
-      'image': 'assets/images/hammy_waving.png',
+      'animation': 'assets/animations/waving.json',
       'title': 'Welcome to\nHabitster',
       'subtitle': 'Your journey to a better you\nstarts here.',
-      'color': const Color(0xFFFFE500), // Bright yellow
+      'color': const Color(0xFFFF0125), // Changed to red only for first screen
     },
     {
-      'image': 'assets/images/jim_strongman.png',
+      'animation': 'assets/animations/running.json', // Updated to use Lottie animation
       'title': 'Build\nDiscipline',
       'subtitle': 'Track workouts, habits, and feel the gains.',
-      'color': const Color(0xFF9C27B0), // Purple
+      'color': const Color(0xFFE8A400), // Updated to new color (#e8a400)
     },
     {
-      'image': 'assets/images/layla_book.png',
+      'animation': 'assets/animations/books.json', // Updated to use Lottie animation
       'title': 'Master\nFocus',
       'subtitle': 'Focus like a monk with Pomodoro and breaks.',
-      'color': const Color(0xFF2196F3), // Blue
+      'color': const Color(0xFFF7BF80), // Updated to new color (#f7bf80)
     },
     {
-      'image': 'assets/images/albert_study.png',
+      'animation': 'assets/animations/study.json', // Updated to use Lottie animation
       'title': 'Study\nSmarter',
       'subtitle': 'Smash study goals with challenges and flashcards.',
-      'color': const Color(0xFFFF9800), // Orange
+      'color': const Color(0xFFCECED0), // Updated to new color (#ceced0)
+      'animationScale': 0.6, // Larger animation for the study screen
     },
     {
-      // Special last page with multiple characters
-      'image': 'assets/images/group_shot.png',
+      'animation': 'assets/animations/jumping.json', // Updated to use Lottie animation
       'title': 'Just for You',
       'subtitle': 'Time to take control and build habits',
       'color': const Color(0xFFFFE500), // Bright yellow (same as first page)
@@ -88,22 +164,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isLastPage = _pages[_currentPage]['isLastPage'] == true;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: _pages[_currentPage]['color'],
-        systemNavigationBarIconBrightness: Brightness.dark,
+        statusBarColor: isLastPage ? Colors.white : Colors.transparent,
+        statusBarIconBrightness: isLastPage ? Brightness.dark : (_currentPage == 0 ? Brightness.light : Brightness.dark),
+        systemNavigationBarColor: isLastPage ? Colors.white : (_currentPage == 0 ? const Color(0xFFFF0125) : _pages[_currentPage]['color']),
+        systemNavigationBarIconBrightness: isLastPage ? Brightness.dark : (_currentPage == 0 ? Brightness.light : Brightness.dark),
       ),
       child: Scaffold(
-        backgroundColor: _pages[_currentPage]['color'],
+        backgroundColor: isLastPage ? Colors.white : _pages[_currentPage]['color'],
         body: SafeArea(
           child: PageView.builder(
             controller: _pageController,
+            physics: _currentPage == 0 
+                ? const NeverScrollableScrollPhysics() // Disable swipe on first screen
+                : const BouncingScrollPhysics(),
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemCount: _pages.length,
             itemBuilder: (context, index) {
-              if (_pages[index]['isLastPage'] == true) {
+              if (index == 0) {
+                return _buildFirstScreen(context);
+              } else if (_pages[index]['isLastPage'] == true) {
                 return _buildLastOnboardingPage(context, index);
               } else {
                 return _buildOnboardingPage(context, index);
@@ -111,6 +194,134 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+
+  // Custom thick arrow icon
+  Widget _buildThickArrowIcon() {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (Rect bounds) => LinearGradient(
+        colors: [Colors.black, Colors.black],
+      ).createShader(bounds),
+      child: Icon(
+        Icons.arrow_forward_rounded,
+        size: 32,
+        weight: 900,
+      ),
+    );
+  }
+
+  Widget _buildWelcomeText() {
+    return Positioned(
+      top: MediaQuery.of(context).size.height * 0.5,
+      left: 32,
+      right: 32,
+      child: Column(
+        children: _welcomeLines.asMap().entries.map((entry) {
+          return FadeTransition(
+            opacity: _lineAnimations[entry.key],
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.2),
+                end: Offset.zero,
+              ).animate(_lineAnimations[entry.key]),
+              child: Text(
+                entry.value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFirstScreen(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFF0125),
+      child: Stack(
+        children: [
+          // Center Logo with pop animation - adjusted position
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.12, // Adjusted position for larger logo
+            left: 0,
+            right: 0,
+            child: ScaleTransition(
+              scale: _logoAnimation,
+              child: SizedBox(
+                width: 320, // Increased from 280
+                height: 320, // Increased from 280
+                child: Image.asset(
+                  'assets/images/white_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+
+          // New Welcome Text
+          _buildWelcomeText(),
+
+          // Let's Go Button - Updated styling
+          Positioned(
+            bottom: 60,
+            left: 64,  // Increased left padding
+            right: 64, // Increased right padding
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              builder: (context, value, child) {
+                return Transform.translate(
+                  offset: Offset(0, 50 * (1 - value)),
+                  child: Opacity(
+                    opacity: value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(30),
+                          onTap: () {
+                            _pageController.animateToPage(
+                              1,
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: const Center(
+                              child: Text(
+                                "Let's begin",  // Changed text case
+                                style: TextStyle(
+                                  color: Color(0xFFFF0125),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -123,7 +334,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           color: _pages[index]['color'],
         ),
         
-        // White rounded container at the bottom
+        // Lottie Animation - adjusted position for running animation
+        Positioned(
+          top: index == 1 
+              ? MediaQuery.of(context).size.height * 0.12 // Lowered position for second screen
+              : MediaQuery.of(context).size.height * 0.08,
+          left: 0,
+          right: 0,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Lottie(
+                  composition: _cachedAnimations[index],
+                  height: MediaQuery.of(context).size.height *
+                      (index == 3 ? 0.55 : 0.48), // Slightly increased height
+                  fit: BoxFit.contain,
+                ),
+        ),
+        
+        // White rounded container at the bottom - moved above the animation
         Positioned(
           bottom: 0,
           left: 0,
@@ -164,31 +392,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         
-        // Mascot Image - adjusted position
-        Positioned(
-          top: MediaQuery.of(context).size.height * 0.08, // Adjusted from 0.15
-          left: 0,
-          right: 0,
-          child: Image.asset(
-            _pages[index]['image'],
-            height: MediaQuery.of(context).size.height * 0.45,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                height: MediaQuery.of(context).size.height * 0.45,
-                width: double.infinity,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.image_not_supported,
-                  size: 64,
-                  color: Colors.black.withOpacity(0.5),
-                ),
-              );
-            },
-          ),
-        ),
-        
-        // Progress Indicators
+        // Updated Progress Indicators
         Positioned(
           bottom: 30,
           left: 0,
@@ -196,23 +400,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              _pages.length,
-              (i) => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+              4, // Changed to show only 4 dots
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(right: 8),
                 height: 8,
-                width: 8,
+                width: (i + 1) == _currentPage ? 24 : 8, // Adjusted index calculation
                 decoration: BoxDecoration(
-                  color: i == _currentPage 
-                      ? Colors.black 
-                      : Colors.grey.withOpacity(0.5),
-                  shape: BoxShape.circle,
+                  color: (i + 1) == _currentPage 
+                      ? const Color(0xFF1A1A1A)
+                      : Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
             ),
           ),
         ),
         
-        // Next Button
+        // Next Button with thicker arrow
         Positioned(
           right: 24,
           bottom: 24,
@@ -220,7 +425,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: _pages[index]['color'],  // Changed from Colors.amber
+              color: _pages[index]['color'],
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
@@ -237,11 +442,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   curve: Curves.easeInOut,
                 );
               },
-              icon: const Icon(
-                Icons.arrow_forward,
-                color: Colors.black,
-                size: 28,
-              ),
+              icon: _buildThickArrowIcon(),
             ),
           ),
         ),
@@ -276,112 +477,131 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildLastOnboardingPage(BuildContext context, int index) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), // Increased vertical margin
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), // Adjusted padding
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      color: Colors.white,
+      child: Stack(
         children: [
-          const SizedBox(height: 40), // Reduced top spacing
-          // Title styling
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Just',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                  height: 1.1,
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
+                
+                // Updated Animation Container with yellow stroke
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  height: MediaQuery.of(context).size.height * 0.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: const Color(0xFFFFE500),
+                      width: 4,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Lottie(
+                            composition: _cachedAnimations[index],
+                            fit: BoxFit.cover, // Changed to cover
+                          ),
+                  ),
                 ),
-              ),
-              Text(
-                'For You',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                  height: 1.1,
+
+                const SizedBox(height: 40),
+
+                // Updated Welcome Text
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Let's Begin\nYour Journey",
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _pages[index]['subtitle'],
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.black.withOpacity(0.6),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 20), // Added spacing
-          
-          Expanded(
-            child: Image.asset(
-              _pages[index]['image'],
-              fit: BoxFit.contain,
-            ),
-          ),
-          
-          const SizedBox(height: 24), // Added consistent spacing
-          
-          // Subtitle
-          Text(
-            _pages[index]['subtitle'],
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.black.withOpacity(0.6),
-              height: 1.3,
-            ),
-          ),
-          
-          const SizedBox(height: 32), // Adjusted bottom spacing
-          
-          // Dots and button row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Unified dots styling
-              Row(
-                children: List.generate(
-                  _pages.length,
-                  (i) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 8,
-                    width: 8,
-                    decoration: BoxDecoration(
-                      color: i == index 
-                          ? Colors.black 
-                          : Colors.grey.withOpacity(0.5),
-                      shape: BoxShape.circle,
+
+                const Spacer(),
+
+                // Get Started Button
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFE500),
+                      foregroundColor: const Color(0xFF1A1A1A),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      minimumSize: const Size(double.infinity, 60),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Get Started',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Get Started button
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFE500), // Bright yellow
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Get Started',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 24), // Reduced bottom padding
+
+          // Progress dots
+          Positioned(
+            bottom: 120,
+            left: 32,
+            child: Row(
+              children: List.generate(
+                _pages.length,
+                (i) => Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  height: 8,
+                  width: i == index ? 24 : 8,
+                  decoration: BoxDecoration(
+                    color: i == index 
+                        ? const Color(0xFF1A1A1A)
+                        : Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

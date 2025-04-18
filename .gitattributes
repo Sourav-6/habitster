@@ -1,0 +1,4 @@
+* text=auto
+*.dart text
+*.yaml text
+*.lock text
