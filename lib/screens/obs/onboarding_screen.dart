@@ -47,10 +47,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   late Animation<double> _logoAnimation;
 
   late AnimationController _textController;
-  late Animation<double> _textOpacity;
-  String _displayText = '';
-  final String _welcomeText = 'Welcome,\nthe journey to a better you begins now';
-
   final List<String> _welcomeLines = [
     'Ready to',
     'transform',
