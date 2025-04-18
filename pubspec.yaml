@@ -32,6 +32,7 @@ flutter:
     - assets/animations/study.json
     - assets/animations/jumping.json
     - assets/images/white_logo.png
+    - assets/animations/astro.json
   fonts:
     - family: Poppins
       fonts:
