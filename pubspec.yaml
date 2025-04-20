@@ -33,6 +33,12 @@ flutter:
     - assets/animations/jumping.json
     - assets/images/white_logo.png
     - assets/animations/astro.json
+    - assets/images/gradient_logo.png
+    - assets/images/Woman Climbing Light Skin Tone.png
+    - assets/images/Person Bouncing Ball Light Skin Tone.png
+    - assets/images/Man In Lotus Position Dark Skin Tone.png
+    - assets/images/apple.png
+    - assets/images/google.png
   fonts:
     - family: Poppins
       fonts:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart'; // Added Lottie package
+import '../accountCreation/signUpIn.dart';  // Add this import
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -459,7 +460,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                 onTap: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                    MaterialPageRoute(builder: (_) => const SignUpIn()),
                   );
                 },
                 child: Container(
@@ -516,7 +517,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                MaterialPageRoute(builder: (_) => const SignUpIn()),
               );
             },
             style: TextButton.styleFrom(
@@ -533,41 +534,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           ),
         ),
       ],
-    );
-  }
-}
-
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Habitster Dashboard')),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
-            SizedBox(height: 16),
-            Text(
-              'Welcome to Habitster!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Your journey to better habits starts now.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
