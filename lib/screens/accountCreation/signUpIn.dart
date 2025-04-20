@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'register.dart'; // Import the Register page
-import 'signin.dart'; // Import the SignIn page
+import 'register.dart';
+import 'signin.dart';
 
 class SignUpIn extends StatelessWidget {
   const SignUpIn({super.key});
@@ -15,8 +15,7 @@ class SignUpIn extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2), // Increased spacer to push content down
-              // Logo (larger with constrained max height)
+              const Spacer(flex: 2),
               Flexible(
                 flex: 3,
                 child: ConstrainedBox(
@@ -28,8 +27,6 @@ class SignUpIn extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              
-              // Slogan Text
               const Text(
                 "Let's transform life,\none habit at a time.",
                 textAlign: TextAlign.center,
@@ -41,10 +38,7 @@ class SignUpIn extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              const Spacer(flex: 3), // Further increased spacer to push icons and buttons down
-              
-              // Activity Icons Row
+              const Spacer(flex: 3),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -65,8 +59,6 @@ class SignUpIn extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
-              // Register Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -74,17 +66,14 @@ class SignUpIn extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const Register(), // Navigate to Register page
-                      ),
+                      MaterialPageRoute(builder: (context) => const Register()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE50035), // Fixed typo
+                    backgroundColor: const Color(0xFFE50035),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
-                    elevation: 0,
                   ),
                   child: const Text(
                     'Register',
@@ -97,8 +86,6 @@ class SignUpIn extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Sign In Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -106,9 +93,7 @@ class SignUpIn extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const SignIn(), // Navigate to SignIn page
-                      ),
+                      MaterialPageRoute(builder: (context) => const SignIn()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -127,7 +112,7 @@ class SignUpIn extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(flex: 2), // Keeps bottom spacing
+              const Spacer(flex: 2),
             ],
           ),
         ),

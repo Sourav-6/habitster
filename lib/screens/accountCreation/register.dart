@@ -8,21 +8,18 @@ class Register extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: LayoutBuilder( // Added to constrain the height
+        child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight, // Match parent height
-                ),
-                child: IntrinsicHeight( // Ensures proper layout of children
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 32),
-                        // Title
                         const Text(
                           'Create an Account',
                           style: TextStyle(
@@ -32,7 +29,6 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // Subtitle
                         const Text(
                           'Start your journey with Habitster',
                           style: TextStyle(
@@ -41,7 +37,6 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        // Email TextField
                         TextField(
                           decoration: InputDecoration(
                             hintText: 'Email',
@@ -51,7 +46,6 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Password TextField
                         TextField(
                           obscureText: true,
                           decoration: InputDecoration(
@@ -62,14 +56,11 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        // Register Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // TODO: Implement registration logic
-                            },
+                            onPressed: () {},
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE50035),
                               shape: RoundedRectangleBorder(
@@ -87,7 +78,6 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Divider
                         Row(
                           children: const [
                             Expanded(child: Divider(color: Colors.black26)),
@@ -99,14 +89,11 @@ class Register extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Continue with Apple Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // TODO: Implement Apple sign-in
-                            },
+                            onPressed: () {},
                             icon: Image.asset(
                               'assets/images/apple.png',
                               height: 24,
@@ -120,14 +107,11 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Continue with Google Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // TODO: Implement Google sign-in
-                            },
+                            onPressed: () {},
                             icon: Image.asset(
                               'assets/images/google.png',
                               height: 24,
@@ -140,8 +124,7 @@ class Register extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Spacer(), // Pushes the "By registering" text to the bottom
-                        // Terms and Privacy Policy
+                        const Spacer(),
                         Center(
                           child: RichText(
                             textAlign: TextAlign.center,
@@ -158,7 +141,6 @@ class Register extends StatelessWidget {
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
-                                  // TODO: Add link functionality
                                 ),
                                 const TextSpan(text: ' and '),
                                 TextSpan(
@@ -167,13 +149,12 @@ class Register extends StatelessWidget {
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
-                                  // TODO: Add link functionality
                                 ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16), // Keeps spacing at the bottom
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),

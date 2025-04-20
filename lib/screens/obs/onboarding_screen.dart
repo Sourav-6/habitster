@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart'; // Added Lottie package
-import '../accountCreation/signUpIn.dart';  // Add this import
+import 'package:lottie/lottie.dart';
+import '../accountCreation/signUpIn.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp, // Lock to portrait mode
+    DeviceOrientation.portraitUp,
   ]).then((_) {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
@@ -38,7 +38,7 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {  // Changed from SingleTickerProviderStateMixin
+class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   List<LottieComposition?> _cachedAnimations = [];
@@ -48,18 +48,69 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   late Animation<double> _logoAnimation;
 
   late AnimationController _textController;
-  final List<String> _welcomeLines = [
-    'Ready to',
-    'transform',
-    'your life?'
-  ];
+  final List<String> _welcomeLines = ['Ready to', 'transform', 'your life?'];
   List<Animation<double>> _lineAnimations = [];
+
+  final List<Map<String, dynamic>> _pages = [
+    {
+      'animation': 'assets/animations/waving.json',
+      'title': 'Welcome to\nHabitster',
+      'subtitle': 'Your journey to a better you\nstarts here.',
+      'color': const Color(0xFFFF0125),
+    },
+    {
+      'animation': 'assets/animations/running.json',
+      'title': RichText(
+        text: const TextSpan(
+          children: [
+            TextSpan(text: 'Build\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
+            TextSpan(text: 'Discipline', style: TextStyle(color: Color(0xFFE8A400), fontSize: 32, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      'subtitle': 'Track workouts, habits, and feel the gains.',
+      'color': const Color(0xFFE8A400),
+    },
+    {
+      'animation': 'assets/animations/books.json',
+      'title': RichText(
+        text: const TextSpan(
+          children: [
+            TextSpan(text: 'Master\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
+            TextSpan(text: 'Focus', style: TextStyle(color: Color(0xFF9C27B0), fontSize: 32, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      'subtitle': 'Focus like a monk with Pomodoro and breaks.',
+      'color': const Color(0xFFF7BF80),
+    },
+    {
+      'animation': 'assets/animations/study.json',
+      'title': RichText(
+        text: const TextSpan(
+          children: [
+            TextSpan(text: 'Study\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
+            TextSpan(text: 'Smarter', style: TextStyle(color: Color(0xFF4CAF50), fontSize: 32, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      'subtitle': 'Smash study goals with challenges and flashcards.',
+      'color': const Color(0xFFCECED0),
+      'animationScale': 0.6,
+    },
+    {
+      'animation': 'assets/animations/astro.json',
+      'title': "Let's Begin\nYour Journey",
+      'subtitle': 'Time to take control and build habits that last',
+      'color': const Color(0xFF261832),
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _precacheAnimations();
-    
+
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -67,13 +118,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
 
     _logoAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.2)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 50.0,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.2, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 50.0,
       ),
     ]).animate(_logoController);
@@ -85,16 +134,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       vsync: this,
     );
 
-    // Create staggered animations for each line
     _lineAnimations = _welcomeLines.asMap().entries.map((entry) {
       return Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
           parent: _textController,
-          curve: Interval(
-            entry.key * 0.2, // Stagger start times
-            (entry.key * 0.2) + 0.6,
-            curve: Curves.easeOut,
-          ),
+          curve: Interval(entry.key * 0.2, (entry.key * 0.2) + 0.6, curve: Curves.easeOut),
         ),
       );
     }).toList();
@@ -124,61 +168,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     setState(() => _isLoading = false);
   }
 
-  final List<Map<String, dynamic>> _pages = [
-    {
-      'animation': 'assets/animations/waving.json',
-      'title': 'Welcome to\nHabitster',
-      'subtitle': 'Your journey to a better you\nstarts here.',
-      'color': const Color(0xFFFF0125), // Changed to red only for first screen
-    },
-    {
-      'animation': 'assets/animations/running.json', // Updated to use Lottie animation
-      'title': RichText(
-        text: const TextSpan(
-          children: [
-            TextSpan(text: 'Build\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
-            TextSpan(text: 'Discipline', style: TextStyle(color: Color(0xFFE8A400), fontSize: 32, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-      'subtitle': 'Track workouts, habits, and feel the gains.',
-      'color': const Color(0xFFE8A400), // Updated to new color (#e8a400)
-    },
-    {
-      'animation': 'assets/animations/books.json', // Updated to use Lottie animation
-      'title': RichText(
-        text: const TextSpan(
-          children: [
-            TextSpan(text: 'Master\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
-            TextSpan(text: 'Focus', style: TextStyle(color: Color(0xFF9C27B0), fontSize: 32, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-      'subtitle': 'Focus like a monk with Pomodoro and breaks.',
-      'color': const Color(0xFFF7BF80), // Updated to new color (#f7bf80)
-    },
-    {
-      'animation': 'assets/animations/study.json', // Updated to use Lottie animation
-      'title': RichText(
-        text: const TextSpan(
-          children: [
-            TextSpan(text: 'Study\n', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold)),
-            TextSpan(text: 'Smarter', style: TextStyle(color: Color(0xFF4CAF50), fontSize: 32, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-      'subtitle': 'Smash study goals with challenges and flashcards.',
-      'color': const Color(0xFFCECED0), // Updated to new color (#ceced0)
-      'animationScale': 0.6, // Larger animation for the study screen
-    },
-    {
-      'animation': 'assets/animations/astro.json',
-      'title': "Let's Begin\nYour Journey",
-      'subtitle': 'Time to take control and build habits that last',
-      'color': const Color(0xFF261832),  // Changed from E8A400 to 261832
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     bool isLastPage = _pages[_currentPage]['isLastPage'] == true;
@@ -195,17 +184,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         body: SafeArea(
           child: PageView.builder(
             controller: _pageController,
-            physics: _currentPage == 0 
-                ? const NeverScrollableScrollPhysics() // Disable swipe on first screen
+            physics: _currentPage == 0
+                ? const NeverScrollableScrollPhysics()
                 : const BouncingScrollPhysics(),
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemCount: _pages.length,
             itemBuilder: (context, index) {
-              if (index == 0) {
-                return _buildFirstScreen(context);
-              } else {
-                return _buildOnboardingPage(context, index);
-              }
+              return index == 0 ? _buildFirstScreen(context) : _buildOnboardingPage(context, index);
             },
           ),
         ),
@@ -213,14 +198,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     );
   }
 
-  // Custom thick arrow icon
   Widget _buildThickArrowIcon() {
     return ShaderMask(
       blendMode: BlendMode.srcIn,
-      shaderCallback: (Rect bounds) => LinearGradient(
+      shaderCallback: (Rect bounds) => const LinearGradient(
         colors: [Colors.black, Colors.black],
       ).createShader(bounds),
-      child: Icon(
+      child: const Icon(
         Icons.arrow_forward_rounded,
         size: 32,
         weight: 900,
@@ -264,16 +248,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       color: const Color(0xFFFF0125),
       child: Stack(
         children: [
-          // Center Logo with pop animation - adjusted position
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.12, // Adjusted position for larger logo
+            top: MediaQuery.of(context).size.height * 0.12,
             left: 0,
             right: 0,
             child: ScaleTransition(
               scale: _logoAnimation,
               child: SizedBox(
-                width: 320, // Increased from 280
-                height: 320, // Increased from 280
+                width: 320,
+                height: 320,
                 child: Image.asset(
                   'assets/images/white_logo.png',
                   fit: BoxFit.contain,
@@ -281,15 +264,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
               ),
             ),
           ),
-
-          // New Welcome Text
           _buildWelcomeText(),
-
-          // Let's Go Button - Updated styling
           Positioned(
             bottom: 60,
-            left: 64,  // Increased left padding
-            right: 64, // Increased right padding
+            left: 64,
+            right: 64,
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 800),
@@ -318,7 +297,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                             padding: const EdgeInsets.symmetric(vertical: 20),
                             child: const Center(
                               child: Text(
-                                "Let's begin",  // Changed text case
+                                "Let's begin",
                                 style: TextStyle(
                                   color: Color(0xFFFF0125),
                                   fontSize: 18,
@@ -344,15 +323,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   Widget _buildOnboardingPage(BuildContext context, int index) {
     return Stack(
       children: [
-        // Background color
-        Container(
-          color: _pages[index]['color'],
-        ),
-        
-        // Lottie Animation - adjusted position for running animation
+        Container(color: _pages[index]['color']),
         Positioned(
-          top: index == 1 
-              ? MediaQuery.of(context).size.height * 0.12 // Lowered position for second screen
+          top: index == 1
+              ? MediaQuery.of(context).size.height * 0.12
               : MediaQuery.of(context).size.height * 0.08,
           left: 0,
           right: 0,
@@ -361,19 +335,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
               : Lottie(
                   composition: _cachedAnimations[index],
                   height: MediaQuery.of(context).size.height *
-                      (index == 3 ? 0.55 
-                       : index == 4 ? 0.65  // Increased size for astro animation
-                       : 0.48),
+                      (index == 3 ? 0.55 : index == 4 ? 0.65 : 0.48),
                   fit: BoxFit.contain,
                 ),
         ),
-        
-        // White rounded container at the bottom - moved above the animation
         Positioned(
           bottom: 0,
           left: 0,
           right: 0,
-          height: MediaQuery.of(context).size.height * 0.40, // Increased from 0.28
+          height: MediaQuery.of(context).size.height * 0.40,
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -386,7 +356,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _pages[index]['title'] is RichText 
+                _pages[index]['title'] is RichText
                     ? _pages[index]['title']
                     : Text(
                         _pages[index]['title'],
@@ -410,8 +380,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
             ),
           ),
         ),
-        
-        // Updated Progress Indicators
         Positioned(
           bottom: 30,
           left: 0,
@@ -419,14 +387,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              4, // Changed to show only 4 dots
+              4,
               (i) => AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 margin: const EdgeInsets.only(right: 8),
                 height: 8,
-                width: (i + 1) == _currentPage ? 24 : 8, // Adjusted index calculation
+                width: (i + 1) == _currentPage ? 24 : 8,
                 decoration: BoxDecoration(
-                  color: (i + 1) == _currentPage 
+                  color: (i + 1) == _currentPage
                       ? const Color(0xFF1A1A1A)
                       : Colors.grey.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(4),
@@ -435,81 +403,79 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
             ),
           ),
         ),
-        
-        // Get Started Button for last page, otherwise show arrow button
-        index == 4 ? Positioned(
-          bottom: 80,  // Positioned above progress dots
-          left: 64,
-          right: 64,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF261832),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(30),
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignUpIn()),
-                  );
-                },
+        index == 4
+            ? Positioned(
+                bottom: 80,
+                left: 64,
+                right: 64,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: const Center(
-                    child: Text(
-                      "Get Started",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF261832),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SignUpIn()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: const Center(
+                          child: Text(
+                            "Get Started",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ) : Positioned(
-          right: 24,
-          bottom: 24,
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: _pages[index]['color'],
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              )
+            : Positioned(
+                right: 24,
+                bottom: 24,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: _pages[index]['color'],
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    icon: _buildThickArrowIcon(),
+                  ),
                 ),
-              ],
-            ),
-            child: IconButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
-              icon: _buildThickArrowIcon(),
-            ),
-          ),
-        ),
-        
-        // Skip button
+              ),
         Positioned(
           top: 16,
           right: 16,

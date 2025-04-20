@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'register.dart'; // Import the Register page
+import 'register.dart';
 
 class SignIn extends StatelessWidget {
   const SignIn({super.key});
@@ -13,9 +13,7 @@ class SignIn extends StatelessWidget {
           builder: (context, constraints) {
             return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -23,7 +21,6 @@ class SignIn extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 32),
-                        // Title
                         const Text(
                           'Welcome Back',
                           style: TextStyle(
@@ -33,7 +30,6 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // Subtitle
                         const Text(
                           'Let’s continue building habits',
                           style: TextStyle(
@@ -42,7 +38,6 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        // Email TextField
                         TextField(
                           decoration: InputDecoration(
                             hintText: 'Email',
@@ -52,7 +47,6 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Password TextField
                         TextField(
                           obscureText: true,
                           decoration: InputDecoration(
@@ -63,14 +57,11 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        // Sign In Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // TODO: Implement sign-in logic
-                            },
+                            onPressed: () {},
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE50035),
                               shape: RoundedRectangleBorder(
@@ -88,12 +79,9 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Forgot Password
                         Center(
                           child: TextButton(
-                            onPressed: () {
-                              // TODO: Implement forgot password logic
-                            },
+                            onPressed: () {},
                             child: const Text(
                               'Forget password ?',
                               style: TextStyle(
@@ -105,7 +93,6 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Divider
                         Row(
                           children: const [
                             Expanded(child: Divider(color: Colors.black26)),
@@ -117,14 +104,11 @@ class SignIn extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Continue with Apple Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // TODO: Implement Apple sign-in
-                            },
+                            onPressed: () {},
                             icon: Image.asset(
                               'assets/images/apple.png',
                               height: 24,
@@ -138,14 +122,11 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Continue with Google Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // TODO: Implement Google sign-in
-                            },
+                            onPressed: () {},
                             icon: Image.asset(
                               'assets/images/google.png',
                               height: 24,
@@ -159,14 +140,13 @@ class SignIn extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        // New Here? Sign Up
                         Center(
                           child: TextButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const Register(), // Navigate to Register page
+                                  builder: (context) => const Register(),
                                 ),
                               );
                             },
@@ -180,7 +160,6 @@ class SignIn extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Terms and Privacy Policy
                         Center(
                           child: RichText(
                             textAlign: TextAlign.center,
@@ -197,7 +176,6 @@ class SignIn extends StatelessWidget {
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
-                                  // TODO: Add link functionality
                                 ),
                                 const TextSpan(text: ' and '),
                                 TextSpan(
@@ -206,7 +184,6 @@ class SignIn extends StatelessWidget {
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
-                                  // TODO: Add link functionality
                                 ),
                               ],
                             ),
