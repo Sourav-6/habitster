@@ -17,11 +17,14 @@ class SignUpIn extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
               Flexible(
-                flex: 3,
+                flex: 10,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 600),
+                  constraints: const BoxConstraints(
+                    maxHeight: 12000,
+                    maxWidth: double.infinity
+                  ),
                   child: Image.asset(
-                    'assets/images/gradient_logo.png',
+                    'assets/images/habitsterGradient.png',
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -38,7 +41,7 @@ class SignUpIn extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Spacer(flex: 3),
+              const Spacer(flex: 6), // Increased from 4 to 6
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -70,7 +73,7 @@ class SignUpIn extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE50035),
+                    backgroundColor: const Color(0xFFFF0066), // Updated color
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
@@ -112,7 +115,7 @@ class SignUpIn extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(flex: 2),
+              const Spacer(flex: 1), // Decreased from 2 to 1
             ],
           ),
         ),

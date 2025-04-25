@@ -62,7 +62,7 @@ class Register extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: () {},
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE50035),
+                              backgroundColor: const Color(0xFFFF0066),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(28),
                               ),
@@ -95,7 +95,7 @@ class Register extends StatelessWidget {
                           child: OutlinedButton.icon(
                             onPressed: () {},
                             icon: Image.asset(
-                              'assets/images/apple.png',
+                              'assets/images/apple.png', // Reverted to Apple logo
                               height: 24,
                             ),
                             label: const Text('Continue with Apple'),
@@ -113,7 +113,7 @@ class Register extends StatelessWidget {
                           child: OutlinedButton.icon(
                             onPressed: () {},
                             icon: Image.asset(
-                              'assets/images/google.png',
+                              'assets/images/google.png', // Reverted to Google logo
                               height: 24,
                             ),
                             label: const Text('Continue with Google'),

@@ -10,8 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: ^2.0.0 # Add this line (use the latest version available)
   cupertino_icons: ^1.0.8
   lottie: ^2.7.0 # Add the Lottie package dependency
+  shared_preferences: ^2.0.15 # Add this line (use the latest version available)
 
 dev_dependencies:
   flutter_test:
@@ -21,24 +23,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/hammy_waving.png
-    - assets/images/jim_strongman.png
-    - assets/images/layla_book.png
-    - assets/images/albert_study.png
-    - assets/images/group_shot.png
-    - assets/animations/waving.json
-    - assets/animations/running.json
-    - assets/animations/books.json
-    - assets/animations/study.json
-    - assets/animations/jumping.json
-    - assets/images/white_logo.png
-    - assets/animations/astro.json
-    - assets/images/gradient_logo.png
-    - assets/images/Woman Climbing Light Skin Tone.png
-    - assets/images/Person Bouncing Ball Light Skin Tone.png
-    - assets/images/Man In Lotus Position Dark Skin Tone.png
-    - assets/images/apple.png
-    - assets/images/google.png
+    - assets/images/
+    - assets/animations/
   fonts:
     - family: Poppins
       fonts:

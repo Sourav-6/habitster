@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Habitster',
+      debugShowCheckedModeBanner: false, // Hide the debug banner
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -44,9 +45,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   List<LottieComposition?> _cachedAnimations = [];
   bool _isLoading = true;
 
-  late AnimationController _logoController;
-  late Animation<double> _logoAnimation;
-
   late AnimationController _textController;
   final List<String> _welcomeLines = ['Ready to', 'transform', 'your life?'];
   List<Animation<double>> _lineAnimations = [];
@@ -56,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       'animation': 'assets/animations/waving.json',
       'title': 'Welcome to\nHabitster',
       'subtitle': 'Your journey to a better you\nstarts here.',
-      'color': const Color(0xFFFF0125),
+      'color': const Color(0xFFFF0066), // Updated color to #ff0066
     },
     {
       'animation': 'assets/animations/running.json',
@@ -111,24 +109,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     super.initState();
     _precacheAnimations();
 
-    _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-
-    _logoAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 50.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 50.0,
-      ),
-    ]).animate(_logoController);
-
-    _logoController.forward();
-
     _textController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -156,7 +136,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   @override
   void dispose() {
     _textController.dispose();
-    _logoController.dispose();
     super.dispose();
   }
 
@@ -245,22 +224,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
 
   Widget _buildFirstScreen(BuildContext context) {
     return Container(
-      color: const Color(0xFFFF0125),
+      color: const Color(0xFFFF0066),
       child: Stack(
         children: [
           Positioned(
             top: MediaQuery.of(context).size.height * 0.12,
             left: 0,
             right: 0,
-            child: ScaleTransition(
-              scale: _logoAnimation,
-              child: SizedBox(
-                width: 320,
-                height: 320,
-                child: Image.asset(
-                  'assets/images/white_logo.png',
-                  fit: BoxFit.contain,
-                ),
+            child: SizedBox(
+              width: 130,  // reduced from 160
+              height: 130, // reduced from 160
+              child: Image.asset(
+                'assets/images/white_logo.png',
+                fit: BoxFit.contain,
               ),
             ),
           ),
@@ -299,7 +275,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                               child: Text(
                                 "Let's begin",
                                 style: TextStyle(
-                                  color: Color(0xFFFF0125),
+                                  color: Color(0xFFFF0066),
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.5,

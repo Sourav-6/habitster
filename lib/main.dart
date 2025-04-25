@@ -12,6 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Habitster',
+      debugShowCheckedModeBanner: false, // Hide the debug banner
       theme: ThemeData(
         primaryColor: const Color(0xFFFFEA00), // Lemon Zest
         scaffoldBackgroundColor: const Color(0xFFFFFDE7), // Light Cream

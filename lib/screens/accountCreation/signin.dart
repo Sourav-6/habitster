@@ -63,7 +63,7 @@ class SignIn extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: () {},
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE50035),
+                              backgroundColor: const Color(0xFFFF0066),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(28),
                               ),
@@ -154,7 +154,7 @@ class SignIn extends StatelessWidget {
                               'New here ? → Sign Up',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFFE50035),
+                                color: Color(0xFFFF0066),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
