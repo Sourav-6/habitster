@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import for SystemChrome
 import 'screens/obs/onboarding_screen.dart'; // Import the new file
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized(); // Add this line
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]); // Lock to portrait mode
   runApp(const MyApp());
 }
 
