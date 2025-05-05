@@ -30,8 +30,8 @@ class MyApp extends StatelessWidget {
       title: 'Habitster',
       debugShowCheckedModeBanner: false, // Hide the debug banner
       theme: ThemeData(
-        primaryColor: const Color(0xFFFFEA00), // Lemon Zest
-        scaffoldBackgroundColor: const Color(0xFFFFFDE7), // Light Cream
+        primaryColor: const Color(0xFFFF0066), // Changed from yellow to pink
+        scaffoldBackgroundColor: Colors.white, // Changed from cream to white
         fontFamily: 'Poppins', // Added font
         textTheme: const TextTheme(
           headlineLarge: TextStyle(color: Color(0xFF212121), fontSize: 28), // Graphite
