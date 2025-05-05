@@ -5,23 +5,23 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.2
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  flutter_svg: ^2.0.0 # Add this line (use the latest version available)
-  cupertino_icons: ^1.0.8
-  lottie: ^2.7.0 # Add the Lottie package dependency
-  shared_preferences: ^2.0.15 # Add this line (use the latest version available)
+  flutter_svg: ^2.0.9
+  cupertino_icons: ^1.0.6
+  lottie: ^2.7.0
+  shared_preferences: ^2.2.2
   google_fonts: ^6.1.0
-  salomon_bottom_bar: ^3.3.2 # Add Salomon Bottom Bar package
-  easy_date_timeline: ^2.0.9 # Add Easy Date Timeline package
+  salomon_bottom_bar: ^3.3.2
+  easy_date_timeline: ^2.0.9
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.1
   flutter_native_splash: ^2.3.10
 
 flutter:
