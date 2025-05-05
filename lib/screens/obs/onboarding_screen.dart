@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../accountCreation/signUpIn.dart';
+import '../accountCreation/register.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -400,7 +402,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(30),
-                      onTap: () {
+                      onTap: () async {
+                        // Save that onboarding has been shown
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('showOnboarding', false);
+                        
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (_) => const SignUpIn()),

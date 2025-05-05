@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'register.dart';
+import '../features/dashboard/dashboard.dart' as dashboard;
 
 class SignIn extends StatelessWidget {
   const SignIn({super.key});
@@ -61,7 +62,14 @@ class SignIn extends StatelessWidget {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const dashboard.DashboardScreen(),
+                                ),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFF0066),
                               shape: RoundedRectangleBorder(

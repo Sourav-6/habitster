@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Add this import for SystemChrome
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/obs/onboarding_screen.dart'; // Import the new file
+import 'screens/accountCreation/register.dart';
+import 'screens/accountCreation/signUpIn.dart'; // Import the SignUpIn screen
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Add this line
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]); // Lock to portrait mode
-  runApp(const MyApp());
+  
+  // Check if onboarding has been shown
+  final prefs = await SharedPreferences.getInstance();
+  final showOnboarding = prefs.getBool('showOnboarding') ?? true;
+  
+  runApp(MyApp(showOnboarding: showOnboarding));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool showOnboarding;
+  
+  const MyApp({super.key, required this.showOnboarding});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +38,7 @@ class MyApp extends StatelessWidget {
           bodyMedium: TextStyle(color: Color(0xFF757575), fontSize: 16), // Cool Grey
         ),
       ),
-      home: const OnboardingScreen(), // Use the new onboarding screen
+      home: showOnboarding ? const OnboardingScreen() : const SignUpIn(), // Show SignUpIn instead of Register
     );
   }
 }
