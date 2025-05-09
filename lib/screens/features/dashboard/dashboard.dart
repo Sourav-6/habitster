@@ -24,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F0FF), // Soft purple-white background
       extendBody: true, // Allow body content to extend behind the bottom bar
       body: _screens[_selectedIndex],
       bottomNavigationBar: Stack(
@@ -31,16 +32,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // Glassmorphism background bar
           Container(
-            margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            width: MediaQuery.of(context).size.width * 0.85, // Adjusted width to prevent overflow
+            margin: const EdgeInsets.only(bottom: 25), // Increased bottom margin
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), // Adjusted padding
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(30),
+              color: const Color(0xFFE6E0FF), // Light violet background
+              borderRadius: BorderRadius.circular(35),
               border: Border.all(color: Colors.white.withOpacity(0.3)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -51,8 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.home_rounded,
                     color: _selectedIndex == 0 
-                        ? Colors.white 
-                        : Colors.white.withOpacity(0.6),
+                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
                   onPressed: () {
@@ -65,8 +68,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.checklist_rounded,
                     color: _selectedIndex == 1 
-                        ? Colors.white 
-                        : Colors.white.withOpacity(0.6),
+                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
                   onPressed: () {
@@ -75,13 +78,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     });
                   },
                 ),
-                const SizedBox(width: 60), // space for the center button
+                const SizedBox(width: 50), // reduced space for the center button
                 IconButton(
                   icon: Icon(
                     Icons.auto_awesome_rounded,
                     color: _selectedIndex == 2 
-                        ? Colors.white 
-                        : Colors.white.withOpacity(0.6),
+                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
                   onPressed: () {
@@ -94,8 +97,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.person_rounded,
                     color: _selectedIndex == 3 
-                        ? Colors.white 
-                        : Colors.white.withOpacity(0.6),
+                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
                   onPressed: () {
@@ -110,21 +113,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           
           // Center Floating + Button
           Positioned(
-            bottom: 30,
+            bottom: 40, // Raised position to make more room
             child: GestureDetector(
               onTap: () {
                 // Add your action here
               },
               child: Container(
-                width: 60,
-                height: 60,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFF6A0DAD),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.purpleAccent.withOpacity(0.6),
-                      blurRadius: 10,
+                      blurRadius: 15,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -151,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F0FF),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -203,7 +207,7 @@ class TodoListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F0FF),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -233,7 +237,7 @@ class HabitsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F0FF),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -263,7 +267,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F0FF),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
