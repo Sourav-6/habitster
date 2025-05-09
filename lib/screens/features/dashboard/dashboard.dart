@@ -28,15 +28,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       extendBody: true, // Allow body content to extend behind the bottom bar
       body: _screens[_selectedIndex],
       bottomNavigationBar: Stack(
-        alignment: Alignment.bottomCenter,
+        alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
         children: [
           // Glassmorphism background bar
           Container(
-            width: MediaQuery.of(context).size.width * 0.85, // Adjusted width to prevent overflow
-            margin: const EdgeInsets.only(bottom: 25), // Increased bottom margin
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), // Adjusted padding
+            width: MediaQuery.of(context).size.width * 0.9,
+            margin: const EdgeInsets.only(bottom: 35),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFE6E0FF), // Light violet background
+              color: const Color(0xFFE6E0FF),
               borderRadius: BorderRadius.circular(35),
               border: Border.all(color: Colors.white.withOpacity(0.3)),
               boxShadow: [
@@ -113,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           
           // Center Floating + Button
           Positioned(
-            bottom: 40, // Raised position to make more room
+            bottom: 45, // Further raised position for better overlap effect
             child: GestureDetector(
               onTap: () {
                 // Add your action here
@@ -163,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back, Uvaiz!',
+                'Hey, Uvaiz!',
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
