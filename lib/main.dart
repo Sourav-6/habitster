@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Add this import for SystemChrome
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/obs/onboarding_screen.dart'; // Import the new file
-import 'screens/accountCreation/register.dart';
 import 'screens/accountCreation/signUpIn.dart'; // Import the SignUpIn screen
 
 void main() async {

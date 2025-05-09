@@ -24,76 +24,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allow body content to extend behind the bottom bar
       body: _screens[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+      bottomNavigationBar: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Glassmorphism background bar
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.home_rounded,
+                    color: _selectedIndex == 0 
+                        ? Colors.white 
+                        : Colors.white.withOpacity(0.6),
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.checklist_rounded,
+                    color: _selectedIndex == 1 
+                        ? Colors.white 
+                        : Colors.white.withOpacity(0.6),
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
+                  },
+                ),
+                const SizedBox(width: 60), // space for the center button
+                IconButton(
+                  icon: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: _selectedIndex == 2 
+                        ? Colors.white 
+                        : Colors.white.withOpacity(0.6),
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.person_rounded,
+                    color: _selectedIndex == 3 
+                        ? Colors.white 
+                        : Colors.white.withOpacity(0.6),
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 3;
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-          child: SalomonBottomBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            backgroundColor: Colors.white,
-            selectedItemColor: const Color(0xFFFF0066),
-            unselectedItemColor: Colors.grey,
-            items: [
-              SalomonBottomBarItem(
-                icon: const Icon(Icons.home_rounded),
-                title: Text(
-                  'Home',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+          
+          // Center Floating + Button
+          Positioned(
+            bottom: 30,
+            child: GestureDetector(
+              onTap: () {
+                // Add your action here
+              },
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF6A0DAD),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purpleAccent.withOpacity(0.6),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
+                child: const Icon(Icons.add, color: Colors.white, size: 30),
               ),
-              SalomonBottomBarItem(
-                icon: const Icon(Icons.checklist_rounded),
-                title: Text(
-                  'TodoList',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              SalomonBottomBarItem(
-                icon: const Icon(Icons.auto_awesome_rounded),
-                title: Text(
-                  'Habits',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              SalomonBottomBarItem(
-                icon: const Icon(Icons.person_rounded),
-                title: Text(
-                  'Profile',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -156,8 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-
 }
 
 class TodoListScreen extends StatelessWidget {
