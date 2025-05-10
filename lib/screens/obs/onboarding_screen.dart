@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../accountCreation/signUpIn.dart';
-import '../accountCreation/register.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

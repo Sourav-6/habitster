@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'package:easy_date_timeline/easy_date_timeline.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -38,7 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFE6E0FF),
+              color: const Color.fromARGB(255, 252, 221, 233), // Light pink shade of our theme color #FF0066
               borderRadius: BorderRadius.circular(35),
               border: Border.all(color: Colors.white.withOpacity(0.3)),
               boxShadow: [
@@ -56,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.home_rounded,
                     color: _selectedIndex == 0 
-                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        ? const Color(0xFFFF0066) // Pink color for selected icon
                         : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
@@ -70,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.checklist_rounded,
                     color: _selectedIndex == 1 
-                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        ? const Color(0xFFFF0066) // Pink color for selected icon
                         : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
@@ -85,7 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.auto_awesome_rounded,
                     color: _selectedIndex == 2 
-                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        ? const Color(0xFFFF0066) // Pink color for selected icon
                         : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
@@ -99,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icon(
                     Icons.person_rounded,
                     color: _selectedIndex == 3 
-                        ? const Color(0xFF6A0DAD) // Violet color for selected icon
+                        ? const Color(0xFFFF0066) // Pink color for selected icon
                         : Colors.black.withOpacity(0.6),
                     size: 26,
                   ),
@@ -125,10 +124,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 height: 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF6A0DAD),
+                  color: const Color(0xFFFF0066),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purpleAccent.withOpacity(0.6),
+                      color: Colors.pinkAccent.withOpacity(0.6),
                       blurRadius: 15,
                       spreadRadius: 2,
                     ),
