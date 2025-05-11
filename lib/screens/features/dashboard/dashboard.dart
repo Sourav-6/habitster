@@ -177,11 +177,72 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
 
+  Widget _buildStatsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(Icons.local_fire_department, '7', 'Day Streak', AppColors.accentColor),
+          _buildStatItem(Icons.star_rounded, '120', 'Karma Points', AppColors.primaryColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String value, String label, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 32),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textColorDark,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ScreenWrapper(
       title: 'Hey, Uvaiz!',
       children: [
+        _buildStatsSection(),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Divider(height: 1, color: Color(0xFFE0E0E0)),
+        ),
+        Text(
+          'Your Progress',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textColorDark,
+          ),
+        ),
         const SizedBox(height: 12),
         _buildDateTimeline(),
         const SizedBox(height: 20),
@@ -220,16 +281,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
               dayProps: const EasyDayProps(
-                height: 70.0, // Reduced height
-                width: 60.0,  // Reduced width
+                height: 65.0,
+                width: 55.0,
                 dayStructure: DayStructure.dayNumDayStr,
                 inactiveDayStyle: DayStyle(
-                  dayNumStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  dayStrStyle: TextStyle(fontSize: 11),
+                  dayNumStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  dayStrStyle: TextStyle(fontSize: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
                 ),
                 activeDayStyle: DayStyle(
-                  dayNumStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-                  dayStrStyle: TextStyle(fontSize: 11, color: Colors.white),
+                  dayNumStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  dayStrStyle: TextStyle(fontSize: 12, color: Colors.white),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
                 ),
               ),
               timeLineProps: const EasyTimeLineProps(
