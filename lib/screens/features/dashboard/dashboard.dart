@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:easy_date_timeline/easy_date_timeline.dart';
 import 'dart:ui'; // For ImageFilter in glassmorphism effect
+import 'package:intl/intl.dart';
 
 // App theme colors
 class AppColors {
   static const backgroundColor = Colors.white; // Changed to pure white
   static const primaryColor = Color(0xFFFF0066);
-  static const navBarColor = Color.fromARGB(255, 252, 221, 233);
+  static const navBarColor = Color.fromARGB(255, 255, 240, 245); // Lighter pink
   static const accentColor = Color(0xFFFF9800);
   static const textColorDark = Colors.black;
   static const textColorLight = Colors.white;
@@ -179,47 +179,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatsSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatItem(Icons.local_fire_department, '7', 'Day Streak', AppColors.accentColor),
-          _buildStatItem(Icons.star_rounded, '120', 'Karma Points', AppColors.primaryColor),
+          _buildStatItem(Icons.local_fire_department_rounded, '5', 'Streak', Colors.deepOrange),
+          _buildStatItem(Icons.star_rounded, '120', 'Karma', Colors.red),
         ],
       ),
     );
   }
 
   Widget _buildStatItem(IconData icon, String value, String label, Color color) {
-    return Column(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textColorDark,
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+        Icon(icon, color: color, size: 28),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textColorDark,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -227,91 +224,109 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenWrapper(
-      title: 'Hey, Uvaiz!',
-      children: [
-        _buildStatsSection(),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Divider(height: 1, color: Color(0xFFE0E0E0)),
-        ),
-        Text(
-          'Your Progress',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textColorDark,
+    return Scaffold(
+      backgroundColor: AppColors.backgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatsSection(),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Divider(height: 1, color: Color(0xFFE0E0E0)),
+              ),
+              _buildDateTimeline(),
+              const SizedBox(height: 20),
+              // Add your home screen content here
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        _buildDateTimeline(),
-        const SizedBox(height: 20),
-        // Add your home screen content here
-      ],
+      ),
     );
   }
 
   Widget _buildDateTimeline() {
+    final now = DateTime.now();
+    final dates = List.generate(7, (index) => now.add(Duration(days: index - 3)));
+
     return Container(
+      height: 85,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            spreadRadius: 1,
+            blurRadius: 8,
+            spreadRadius: 0.5,
           ),
         ],
-        // Glassmorphism effect
-        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-            child: EasyDateTimeLine(
-              initialDate: _selectedDate,
-              activeColor: AppColors.primaryColor,
-              onDateChange: (selectedDate) {
-                setState(() {
-                  _selectedDate = selectedDate;
-                });
-              },
-              dayProps: const EasyDayProps(
-                height: 65.0,
-                width: 55.0,
-                dayStructure: DayStructure.dayNumDayStr,
-                inactiveDayStyle: DayStyle(
-                  dayNumStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  dayStrStyle: TextStyle(fontSize: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                ),
-                activeDayStyle: DayStyle(
-                  dayNumStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                  dayStrStyle: TextStyle(fontSize: 12, color: Colors.white),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: dates.length,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        itemBuilder: (context, index) {
+          final date = dates[index];
+          final isSelected = DateUtils.isSameDay(date, _selectedDate);
+          final isToday = DateUtils.isSameDay(date, now);
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDate = date),
+            child: Container(
+              width: 58,
+              margin: EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: isSelected ? 8 : 12,
               ),
-              timeLineProps: const EasyTimeLineProps(
-                hPadding: 12.0, // Reduced padding
-                separatorPadding: 12.0, // Reduced padding
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isToday && !isSelected
+                    ? AppColors.primaryColor.withOpacity(0.1)
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('E').format(date).substring(0, 3),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? Colors.white : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    date.day.toString(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : AppColors.textColorDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    DateFormat('MMM').format(date).substring(0, 3),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSelected ? Colors.white.withOpacity(0.9) : Colors.grey[500],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
