@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_date_timeline/easy_date_timeline.dart';
+import 'dart:ui'; // For ImageFilter in glassmorphism effect
 
 // App theme colors
 class AppColors {
-  static const backgroundColor = Color(0xFFF4F0FF);
+  static const backgroundColor = Colors.white; // Changed to pure white
   static const primaryColor = Color(0xFFFF0066);
   static const navBarColor = Color.fromARGB(255, 252, 221, 233);
   static const accentColor = Color(0xFFFF9800);
@@ -190,21 +191,54 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDateTimeline() {
-    return EasyDateTimeLine(
-      initialDate: _selectedDate,
-      activeColor: AppColors.accentColor,
-      onDateChange: (selectedDate) {
-        setState(() {
-          _selectedDate = selectedDate;
-        });
-      },
-      dayProps: const EasyDayProps(
-        height: 100.0,
-        width: 80.0,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+        // Glassmorphism effect
+        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
       ),
-      timeLineProps: const EasyTimeLineProps(
-        hPadding: 16.0,
-        separatorPadding: 16.0,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: EasyDateTimeLine(
+              initialDate: _selectedDate,
+              activeColor: AppColors.primaryColor,
+              onDateChange: (selectedDate) {
+                setState(() {
+                  _selectedDate = selectedDate;
+                });
+              },
+              dayProps: const EasyDayProps(
+                height: 70.0, // Reduced height
+                width: 60.0,  // Reduced width
+                dayStructure: DayStructure.dayNumDayStr,
+                inactiveDayStyle: DayStyle(
+                  dayNumStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  dayStrStyle: TextStyle(fontSize: 11),
+                ),
+                activeDayStyle: DayStyle(
+                  dayNumStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                  dayStrStyle: TextStyle(fontSize: 11, color: Colors.white),
+                ),
+              ),
+              timeLineProps: const EasyTimeLineProps(
+                hPadding: 12.0, // Reduced padding
+                separatorPadding: 12.0, // Reduced padding
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
