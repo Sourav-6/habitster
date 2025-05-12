@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 
 // App theme colors
 class AppColors {
-  static const backgroundColor = Colors.white; // Changed to pure white
+  static const backgroundColor = Colors.white; // Pure white background
   static const primaryColor = Color(0xFFFF0066);
-  static const navBarColor = Color.fromARGB(255, 255, 240, 245); // Lighter pink
+  static const navBarColor = Colors.white; // Changed to white
   static const accentColor = Color(0xFFFF9800);
   static const textColorDark = Colors.black;
   static const textColorLight = Colors.white;
@@ -60,11 +60,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             color: AppColors.navBarColor,
             borderRadius: BorderRadius.circular(35),
-            border: Border.all(color: Colors.white.withOpacity(0.3)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 12,
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                spreadRadius: 0,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                spreadRadius: 2,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -115,9 +121,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         width: 58,
         height: 58,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [
               Color(0xFF6A11CB), // Deep purple
               Color(0xFF2575FC), // Blue
@@ -126,15 +132,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2575FC).withOpacity(0.6),
-              blurRadius: 15,
-              spreadRadius: 2,
-            ),
-          ],
+          // Removed the glow/shadow effect
         ),
-        child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.textColorLight, size: 26),
+        child: const Icon(
+          Icons.chat_bubble_outline_rounded, 
+          color: AppColors.textColorLight, 
+          size: 26,
+        ),
       ),
     );
   }
