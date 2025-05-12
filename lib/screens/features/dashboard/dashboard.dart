@@ -107,23 +107,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildFloatingActionButton() {
     return GestureDetector(
       onTap: () {
-        // Add your action here
+        // Action for AI chatbot
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI Chatbot coming soon!'))
+        );
       },
       child: Container(
         width: 58,
         height: 58,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primaryColor,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF6A11CB), // Deep purple
+              Color(0xFF2575FC), // Blue
+              Color(0xFF00CCFF), // Cyan
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.pinkAccent.withOpacity(0.6),
+              color: const Color(0xFF2575FC).withOpacity(0.6),
               blurRadius: 15,
               spreadRadius: 2,
             ),
           ],
         ),
-        child: const Icon(Icons.add, color: AppColors.textColorLight, size: 30),
+        child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.textColorLight, size: 26),
       ),
     );
   }
