@@ -213,16 +213,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildStatsSection() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(10),
-            blurRadius: 8,
-            spreadRadius: 0.5,
+            blurRadius: 10,
+            spreadRadius: 1,
           ),
         ],
       ),
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Row(
             children: [
               _buildStatItem(Icons.local_fire_department_rounded, '5', 'Streak', Colors.deepOrange),
-              const SizedBox(width: 20),
+              const SizedBox(width: 30),
               _buildStatItem(Icons.star_rounded, '120', 'Karma', Colors.red),
             ],
           ),
@@ -242,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             icon: const Icon(
               Icons.notifications_outlined,
               color: Color(0xFF757575),
-              size: 28,
+              size: 26,
             ),
             onPressed: () {
               // Handle notification bell tap
@@ -254,15 +254,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildStatItem(IconData icon, String value, String label, Color color) {
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 8),
             Text(
               value,
               style: GoogleFonts.poppins(
@@ -271,14 +270,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 color: AppColors.textColorDark,
               ),
             ),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
           ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
         ),
       ],
     );
@@ -300,23 +300,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStatsSection(), // Stats section moved to the top
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(height: 1, color: Color(0xFFE0E0E0)),
-                  ),
+                  const SizedBox(height: 10), // Small space between stats and date picker
                   _buildDateTimeline(),
                   const SizedBox(height: 20),
                   // Add your home screen content here
                 ],
               ),
             ),
-          ),
-
-          // Floating action button for home screen - positioned higher
-          Positioned(
-            bottom: 130, // Raised higher above navbar
-            right: 30,
-            child: _buildAddButton(),
           ),
         ],
       ),
@@ -441,38 +431,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildAddButton() {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFF0066), // Pink
-            Color(0xFFFF3366), // Light pink
-            Color(0xFFf8e356), // Yellow (added)
-            Color(0xFF6A11CB), // Purple
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF0066).withAlpha(77), // 0.3 opacity = 77 alpha
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.add,
-        color: Colors.white,
-        size: 30,
-      ),
-    );
-  }
-
   Widget _buildDateTimeline() {
     final now = DateTime.now();
 
@@ -499,68 +457,68 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(7, (index) {
-          final date = dates[index];
-          final isSelected = DateUtils.isSameDay(date, _selectedDate);
-          final isToday = DateUtils.isSameDay(date, now);
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(7, (index) {
+            final date = dates[index];
+            final isSelected = DateUtils.isSameDay(date, _selectedDate);
+            final isToday = DateUtils.isSameDay(date, now);
 
-          return GestureDetector(
-            onTap: () => setState(() => _selectedDate = date),
-            child: Container(
-              width: 42, // Narrower to fix overflow
-              margin: EdgeInsets.symmetric(
-                horizontal: 1, // Reduced horizontal margin
-                vertical: isSelected ? 8 : 12,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                gradient: isSelected
-                    ? const LinearGradient(
-                        colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isToday && !isSelected
-                    ? AppColors.primaryColor.withAlpha(26) // 0.1 opacity = 26 alpha
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    DateFormat('E').format(date).substring(0, 3),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : Colors.grey[600],
+            return GestureDetector(
+              onTap: () => setState(() => _selectedDate = date),
+              child: Container(
+                width: 42, // Narrower to fix overflow
+                margin: EdgeInsets.symmetric(
+                  horizontal: 1, // Reduced horizontal margin
+                  vertical: isSelected ? 8 : 12,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isToday && !isSelected
+                      ? AppColors.primaryColor.withAlpha(26) // 0.1 opacity = 26 alpha
+                      : null,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      DateFormat('E').format(date).substring(0, 3),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected ? Colors.white : Colors.grey[600],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    date.day.toString(),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : AppColors.textColorDark,
+                    const SizedBox(height: 3),
+                    Text(
+                      date.day.toString(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : AppColors.textColorDark,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    DateFormat('MMM').format(date).substring(0, 3),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isSelected ? Colors.white.withAlpha(230) : Colors.grey[500], // 0.9 opacity = 230 alpha
+                    const SizedBox(height: 2),
+                    Text(
+                      DateFormat('MMM').format(date).substring(0, 3),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isSelected ? Colors.white.withAlpha(230) : Colors.grey[500], // 0.9 opacity = 230 alpha
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
-    ),
     );
   }
 }

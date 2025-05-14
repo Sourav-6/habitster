@@ -9,8 +9,10 @@ class HabitsScreen extends StatefulWidget {
   State<HabitsScreen> createState() => _HabitsScreenState();
 }
 
-class _HabitsScreenState extends State<HabitsScreen> with SingleTickerProviderStateMixin {
+class _HabitsScreenState extends State<HabitsScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
+  late AnimationController _buttonAnimationController;
+  bool _isButtonExpanded = false;
 
   @override
   void initState() {
@@ -19,11 +21,17 @@ class _HabitsScreenState extends State<HabitsScreen> with SingleTickerProviderSt
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
+
+    _buttonAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _buttonAnimationController.dispose();
     super.dispose();
   }
 
@@ -202,33 +210,37 @@ class _HabitsScreenState extends State<HabitsScreen> with SingleTickerProviderSt
   }
 
   Widget _buildAddButton() {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFF0066), // Pink
-            Color(0xFFFF3366), // Light pink
-            Color(0xFFf8e356), // Yellow (added)
-            Color(0xFF6A11CB), // Purple
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isButtonExpanded = !_isButtonExpanded;
+          if (_isButtonExpanded) {
+            _buttonAnimationController.forward();
+          } else {
+            _buttonAnimationController.reverse();
+          }
+        });
+      },
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: const Color(0xFFFF0066), // Single pink color
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF0066).withAlpha(77), // 0.3 opacity = 77 alpha
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.add,
-        color: Colors.white,
-        size: 30,
+        child: AnimatedBuilder(
+          animation: _buttonAnimationController,
+          builder: (context, child) {
+            return Transform.rotate(
+              angle: _buttonAnimationController.value * math.pi / 4, // Rotate 45 degrees
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 30,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
