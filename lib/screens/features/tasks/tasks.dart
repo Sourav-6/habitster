@@ -1,0 +1,235 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
+class TasksScreen extends StatefulWidget {
+  const TasksScreen({super.key});
+
+  @override
+  State<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Glassmorphic background with blurred blobs
+          _buildGlassmorphicBackground(),
+
+          // Main content
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Tasks',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black.withAlpha(204), // Using withAlpha instead of withOpacity
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: _buildTasksList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Floating action button - positioned higher to be above navbar
+          Positioned(
+            bottom: 130, // Raised higher above navbar
+            right: 30,
+            child: _buildAddButton(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassmorphicBackground() {
+    return Stack(
+      children: [
+        // Background gradient
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFF9F9FF), // Very light purple/white
+                Color(0xFFF0F8FF), // Very light blue
+              ],
+            ),
+          ),
+        ),
+
+        // Animated blobs with more attractive design
+        AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                // Pink gradient blob
+                Positioned(
+                  top: -100 + 50 * math.sin(_animationController.value * math.pi * 0.7),
+                  right: -80 + 40 * math.cos(_animationController.value * math.pi * 0.5),
+                  child: _buildGradientBlob(
+                    [
+                      const Color(0xFFFF0066).withAlpha(30), // Pink
+                      const Color(0xFFFF9E80).withAlpha(20), // Light orange
+                    ],
+                    250 + 50 * math.sin(_animationController.value * math.pi * 0.6),
+                  ),
+                ),
+
+                // Yellow-purple gradient blob
+                Positioned(
+                  bottom: MediaQuery.of(context).size.height / 4,
+                  left: -120 + 60 * math.cos(_animationController.value * math.pi * 0.4),
+                  child: _buildGradientBlob(
+                    [
+                      const Color(0xFFf8e356).withAlpha(25), // Yellow
+                      const Color(0xFF6A11CB).withAlpha(15), // Purple
+                    ],
+                    280 + 60 * math.sin(_animationController.value * math.pi * 0.5),
+                  ),
+                ),
+
+                // Blue-cyan gradient blob
+                Positioned(
+                  top: MediaQuery.of(context).size.height / 3,
+                  right: MediaQuery.of(context).size.width / 3 - 50 + 70 * math.sin(_animationController.value * math.pi * 0.3),
+                  child: _buildGradientBlob(
+                    [
+                      const Color(0xFF00CCFF).withAlpha(20), // Cyan
+                      const Color(0xFF2979FF).withAlpha(15), // Blue
+                    ],
+                    200 + 40 * math.cos(_animationController.value * math.pi * 0.6),
+                  ),
+                ),
+
+                // Small decorative blobs
+                Positioned(
+                  top: MediaQuery.of(context).size.height * 0.6,
+                  right: MediaQuery.of(context).size.width * 0.7,
+                  child: _buildGradientBlob(
+                    [
+                      const Color(0xFFFF4081).withAlpha(25), // Pink
+                      const Color(0xFFFF80AB).withAlpha(15), // Light pink
+                    ],
+                    100 + 20 * math.sin(_animationController.value * math.pi * 0.8),
+                  ),
+                ),
+
+                Positioned(
+                  top: MediaQuery.of(context).size.height * 0.2,
+                  right: MediaQuery.of(context).size.width * 0.6,
+                  child: _buildGradientBlob(
+                    [
+                      const Color(0xFF64FFDA).withAlpha(20), // Teal
+                      const Color(0xFF1DE9B6).withAlpha(15), // Light teal
+                    ],
+                    80 + 15 * math.cos(_animationController.value * math.pi * 0.7),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+
+        // Glassmorphic overlay
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60), // Increased blur for more aesthetic effect
+          child: Container(
+            color: Colors.white.withAlpha(20), // Very subtle white overlay
+          ),
+        ),
+      ],
+    );
+  }
+
+  // New method for creating gradient blobs
+  Widget _buildGradientBlob(List<Color> colors, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(size / 2),
+      ),
+    );
+  }
+
+  Widget _buildTasksList() {
+    // Placeholder for tasks list
+    return Center(
+      child: Text(
+        'Your tasks will appear here',
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.black.withAlpha(153), // Using withAlpha instead of withOpacity (0.6)
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFFF0066), // Pink
+            Color(0xFFFF3366), // Light pink
+            Color(0xFFf8e356), // Yellow (added)
+            Color(0xFF6A11CB), // Purple
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF0066).withAlpha(77), // Using withAlpha instead of withOpacity (0.3)
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.add,
+        color: Colors.white,
+        size: 30,
+      ),
+    );
+  }
+}
