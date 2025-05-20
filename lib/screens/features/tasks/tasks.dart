@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'create_task.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -216,6 +217,8 @@ class _TasksScreenState extends State<TasksScreen> with TickerProviderStateMixin
           _isButtonExpanded = !_isButtonExpanded;
           if (_isButtonExpanded) {
             _buttonAnimationController.forward();
+            // Show the create task screen
+            _showCreateTaskScreen();
           } else {
             _buttonAnimationController.reverse();
           }
@@ -226,7 +229,7 @@ class _TasksScreenState extends State<TasksScreen> with TickerProviderStateMixin
         height: 60,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: const Color(0xFFFF0066), // Single pink color
+          color: const Color(0xFFB41D6C), // Pink color #B41D6C
         ),
         child: AnimatedBuilder(
           animation: _buttonAnimationController,
@@ -243,5 +246,30 @@ class _TasksScreenState extends State<TasksScreen> with TickerProviderStateMixin
         ),
       ),
     );
+  }
+
+  void _showCreateTaskScreen() {
+    // Show keyboard immediately
+    FocusScope.of(context).requestFocus(FocusNode());
+
+    // Show a centered dialog instead of a bottom sheet
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withAlpha(100), // Semi-transparent barrier
+      builder: (context) {
+        // Position slightly lower than center
+        return const Padding(
+          padding: EdgeInsets.only(top: 80),
+          child: CreateTaskScreen(),
+        );
+      },
+    ).then((_) {
+      // When the dialog is closed, reset the button
+      setState(() {
+        _isButtonExpanded = false;
+        _buttonAnimationController.reverse();
+      });
+    });
   }
 }

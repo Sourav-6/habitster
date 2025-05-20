@@ -101,12 +101,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildNavItem(int index, IconData icon) {
     final bool isSelected = _selectedIndex == index;
+
+    // Special color for the tasks icon (index 1)
+    Color iconColor;
+    if (index == 1) { // Tasks icon
+      iconColor = isSelected
+          ? const Color(0xFFB41D6C) // Use #B41D6C for tasks icon when selected
+          : Colors.black.withAlpha(153);
+    } else {
+      iconColor = isSelected
+          ? AppColors.primaryColor
+          : Colors.black.withAlpha(153); // 0.6 opacity = 153 alpha
+    }
+
     return IconButton(
       icon: Icon(
         icon,
-        color: isSelected
-            ? AppColors.primaryColor
-            : Colors.black.withAlpha(153), // 0.6 opacity = 153 alpha
+        color: iconColor,
         size: 26,
       ),
       onPressed: () => _onItemTapped(index),
