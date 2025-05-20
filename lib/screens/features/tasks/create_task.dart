@@ -18,9 +18,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   final List<Color> _priorityColors = [
     Colors.grey.shade400, // None
-    const Color(0xFFD97BA9), // Low - Light variant
-    const Color(0xFFC84F8C), // Medium - Medium variant
-    const Color(0xFFB41D6C), // High - Main color
+    const Color(0xFFFFB3B3), // Low - Light variant
+    const Color(0xFFFF8080), // Medium - Medium variant
+    const Color(0xFFFF4747), // High - Main color
   ];
 
   final FocusNode _taskNameFocusNode = FocusNode();
@@ -40,7 +40,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   }
 
   // Define a constant for our primary color
-  static const Color primaryColor = Color(0xFFB41D6C); // Original color #B41D6C
+  static const Color primaryColor = Color(0xFFFF4747); // Updated to #FF4747
 
   @override
   Widget build(BuildContext context) {

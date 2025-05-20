@@ -106,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Color iconColor;
     if (index == 1) { // Tasks icon
       iconColor = isSelected
-          ? const Color(0xFFB41D6C) // Use #B41D6C for tasks icon when selected
+          ? const Color(0xFFFF4747) // Use #FF4747 for tasks icon when selected
           : Colors.black.withAlpha(153);
     } else {
       iconColor = isSelected

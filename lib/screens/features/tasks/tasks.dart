@@ -229,7 +229,7 @@ class _TasksScreenState extends State<TasksScreen> with TickerProviderStateMixin
         height: 60,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: const Color(0xFFB41D6C), // Pink color #B41D6C
+          color: const Color(0xFFFF4747), // Red color #FF4747
         ),
         child: AnimatedBuilder(
           animation: _buttonAnimationController,
