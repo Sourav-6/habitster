@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../accountCreation/signUpIn.dart';
+import '../accountCreation/signupin.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -349,7 +349,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                   _pages[index]['subtitle'],
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(),
                     height: 1.3,
                   ),
                 ),
@@ -373,7 +373,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                 decoration: BoxDecoration(
                   color: (i + 1) == _currentPage
                       ? const Color(0xFF1A1A1A)
-                      : Colors.grey.withOpacity(0.3),
+                      : Colors.grey.withValues(),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -391,7 +391,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -407,6 +407,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                         await prefs.setBool('showOnboarding', false);
                         
                         Navigator.pushReplacement(
+                          // ignore: use_build_context_synchronously
                           context,
                           MaterialPageRoute(builder: (_) => const SignUpIn()),
                         );
@@ -440,7 +441,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

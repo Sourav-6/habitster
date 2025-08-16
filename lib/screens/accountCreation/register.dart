@@ -78,8 +78,8 @@ class Register extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: const [
+                        const Row(
+                          children:  [
                             Expanded(child: Divider(color: Colors.black26)),
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -128,24 +128,24 @@ class Register extends StatelessWidget {
                         Center(
                           child: RichText(
                             textAlign: TextAlign.center,
-                            text: TextSpan(
-                              style: const TextStyle(
+                            text:const TextSpan(
+                              style:  TextStyle(
                                 fontSize: 12,
                                 color: Colors.black54,
                               ),
                               children: [
-                                const TextSpan(text: 'By registering, you agree to our '),
+                                 TextSpan(text: 'By registering, you agree to our '),
                                 TextSpan(
                                   text: 'Terms & Conditions',
-                                  style: const TextStyle(
+                                  style:  TextStyle(
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),
-                                const TextSpan(text: ' and '),
+                                 TextSpan(text: ' and '),
                                 TextSpan(
                                   text: 'Privacy Policy',
-                                  style: const TextStyle(
+                                  style:  TextStyle(
                                     color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),

@@ -20,9 +20,7 @@ class SignUpIn extends StatelessWidget {
                 flex: 10,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
-                    maxHeight: 12000,
-                    maxWidth: double.infinity
-                  ),
+                      maxHeight: 12000, maxWidth: double.infinity),
                   child: Image.asset(
                     'assets/images/habitsterGradient.png',
                     fit: BoxFit.contain,
