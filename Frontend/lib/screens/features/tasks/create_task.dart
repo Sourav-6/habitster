@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../services/api_service.dart';
 
 class CreateTaskScreen extends StatefulWidget {
   const CreateTaskScreen({super.key});
@@ -10,11 +11,16 @@ class CreateTaskScreen extends StatefulWidget {
 }
 
 class _CreateTaskScreenState extends State<CreateTaskScreen> {
+  final ApiService _apiService = ApiService();
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   int _selectedPriority = 0; // 0: None, 1: Low, 2: Medium, 3: High
   String _selectedLabel = ''; // Store the selected label
+  bool _isRecurring = false;
+  final TextEditingController _recurrenceDaysController =
+      TextEditingController();
+  // --- End NEW ---
 
   final List<Color> _priorityColors = [
     Colors.grey.shade400, // None
@@ -36,6 +42,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     _taskNameController.dispose();
     _noteController.dispose();
     _taskNameFocusNode.dispose();
+    _recurrenceDaysController.dispose();
     super.dispose();
   }
 
@@ -84,7 +91,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 // Task name input with send button
                 _buildTaskNameField(),
                 const SizedBox(height: 8),
@@ -101,7 +107,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     children: [
                       _buildActionButton(
                         icon: Icons.calendar_today_rounded,
-                        label: _isToday(_selectedDate) ? 'Today' : DateFormat('MMM d').format(_selectedDate),
+                        label: _isToday(_selectedDate)
+                            ? 'Today'
+                            : DateFormat('MMM d').format(_selectedDate),
                         onTap: _selectDate,
                       ),
                       const SizedBox(width: 8),
@@ -114,12 +122,55 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       const SizedBox(width: 8),
                       _buildActionButton(
                         icon: Icons.label_rounded,
-                        label: _selectedLabel.isEmpty ? 'Label' : _selectedLabel,
+                        label:
+                            _selectedLabel.isEmpty ? 'Label' : _selectedLabel,
                         onTap: _showLabelOptions,
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  title: const Text('Repeat Task'),
+                  value: _isRecurring,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _isRecurring = value;
+                    });
+                  },
+                  activeColor: primaryColor, // Use your primary color
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+
+                // Only show the days input if recurring is enabled
+                if (_isRecurring) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: TextField(
+                      controller: _recurrenceDaysController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Repeat every (days)',
+                        hintText: 'e.g., 7',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: primaryColor),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8), // Add some spacing at the bottom
+                // --- End NEW Recurrence Section ---
               ],
             ),
           ),
@@ -257,7 +308,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.black.withAlpha(220), // Darker text for better readability
+                color: Colors.black
+                    .withAlpha(220), // Darker text for better readability
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -269,7 +321,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   String _getPriorityText() {
@@ -322,7 +376,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(maxWidth: 400),
@@ -389,8 +444,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     }
   }
 
-
-
   void _showLabelOptions() {
     // Default labels like Todoist
     final List<String> defaultLabels = [
@@ -409,7 +462,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(maxWidth: 400),
@@ -461,25 +515,77 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
   }
 
-  void _createTask() {
-    // Validate task name is not empty
+  // lib/screens/features/tasks/create_task.dart
+
+  void _createTask() async {
+    // <-- Make the function async
     if (_taskNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a task name'),
-          backgroundColor: primaryColor,
+          backgroundColor: primaryColor, // Use your defined primary color
         ),
       );
       return;
     }
 
-    // In a real app, you would save the task data to a database or state management solution
-    // Task Name: ${_taskNameController.text}
-    // Note: ${_noteController.text}
-    // Date: $_selectedDate
-    // Priority: $_selectedPriority
-    // Label: ${_selectedLabel.isEmpty ? 'None' : _selectedLabel}
+    int? recurrenceDays;
+    if (_isRecurring) {
+      if (_recurrenceDaysController.text.isEmpty ||
+          int.tryParse(_recurrenceDaysController.text) == null ||
+          int.parse(_recurrenceDaysController.text) <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please enter a valid number of days to repeat'),
+              backgroundColor: Colors.orange),
+        );
+        return;
+      }
+      recurrenceDays = int.parse(_recurrenceDaysController.text);
+    }
 
-    Navigator.pop(context);
+    // 1. Prepare the task data map
+    final Map<String, dynamic> taskData = {
+      'taskName': _taskNameController.text,
+      'note': _noteController.text.isNotEmpty ? _noteController.text : null,
+      'dueDate': _selectedDate.toIso8601String(), // Send in ISO 8601 format
+      'priority': _selectedPriority,
+      'label': _selectedLabel.isNotEmpty ? _selectedLabel : null,
+      'isRecurring': _isRecurring,
+      'recurrenceDays': _isRecurring ? recurrenceDays : null,
+      // 'isRecurring': false, // Add logic for recurring tasks later
+      // 'recurrenceDays': null, // Add logic for recurring tasks later
+    };
+
+    // --- NEW: Validate recurrence days if needed ---
+
+    // Show a loading indicator (optional, but good UX)
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 2. Call the API service
+      final newTask = await _apiService.createTask(taskData);
+
+      // 3. Close loading indicator and the create task dialog
+      if (mounted) {
+        Navigator.pop(context); // Close loading indicator
+        Navigator.pop(context, newTask); // Close dialog and return the new task
+      }
+    } catch (e) {
+      // 4. Handle errors
+      if (mounted) {
+        Navigator.pop(context); // Close loading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create task: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

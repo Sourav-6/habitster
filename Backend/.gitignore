@@ -1,0 +1,5 @@
+# Secret credentials
+.env
+
+# All the downloaded packages
+node_modules/
