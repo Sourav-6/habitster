@@ -218,4 +218,252 @@ class ApiService {
       throw Exception('Network error or server unreachable: $e');
     }
   }
+
+  Future<Map<String, dynamic>> createHabit(
+      Map<String, dynamic> habitData) async {
+    final Uri habitsUri = Uri.parse('$_baseUrl/habits');
+
+    try {
+      final headers = await _getAuthHeaders(); // Get headers with token
+      final response = await http.post(
+        habitsUri,
+        headers: headers, // Use authenticated headers
+        body: json.encode(habitData),
+      );
+
+      if (response.statusCode == 201) {
+        // Habit creation returns 201
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+            'Failed to create habit (Status code: ${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().startsWith('Exception: Failed to create habit')) {
+        rethrow;
+      }
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<List<dynamic>> getHabits() async {
+    // Returns a List
+    final Uri habitsUri = Uri.parse('$_baseUrl/habits');
+
+    try {
+      final headers = await _getAuthHeaders(); // Get headers with token
+      final response = await http.get(
+        habitsUri,
+        headers: headers, // Use authenticated headers
+      );
+
+      if (response.statusCode == 200) {
+        // Backend sends back a List directly
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception(
+            'Failed to load habits (Status code: ${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().startsWith('Exception: Failed to load habits')) {
+        rethrow;
+      }
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> createSubtask(
+      Map<String, dynamic> subtaskData) async {
+    final Uri subtasksUri = Uri.parse('$_baseUrl/subtasks');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        subtasksUri,
+        headers: headers,
+        body: json.encode(subtaskData),
+      );
+
+      if (response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+            'Failed to create subtask (Status code: ${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      // ... error handling ...
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getSubtasks(String habitId) async {
+    // Returns a List
+    // Construct the URL with the habitId
+    final Uri subtasksUri = Uri.parse('$_baseUrl/habits/$habitId/subtasks');
+
+    try {
+      final headers = await _getAuthHeaders(); // Get headers with token
+      final response = await http.get(
+        subtasksUri,
+        headers: headers, // Use authenticated headers
+      );
+
+      if (response.statusCode == 200) {
+        // Backend sends back a List directly
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception(
+            'Failed to load subtasks for habit $habitId (Status code: ${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().startsWith('Exception: Failed to load subtasks')) {
+        rethrow;
+      }
+      throw Exception(
+          'Network error or server unreachable fetching subtasks: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> completeHabit(
+      String habitId, List<String> completedSubtaskIds,
+      {String? notes}) async {
+    // Construct the URL
+    final Uri completeUri = Uri.parse('$_baseUrl/habits/$habitId/complete');
+
+    try {
+      final headers = await _getAuthHeaders(); // Get headers with token
+      // Prepare the body
+      final Map<String, dynamic> body = {
+        'completedSubtaskIds': completedSubtaskIds,
+      };
+      if (notes != null && notes.isNotEmpty) {
+        body['notes'] = notes;
+      }
+
+      final response = await http.post(
+        completeUri,
+        headers: headers, // Use authenticated headers
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        // Expect 200 OK on success
+        return json.decode(response.body); // Return updated habit data
+      } else {
+        // Try to parse error details from Appwrite/backend
+        String errorMessage = 'Failed to complete habit';
+        try {
+          final errorBody = json.decode(response.body);
+          errorMessage = errorBody['message'] ?? errorMessage;
+        } catch (_) {
+          errorMessage = response.body; // Fallback to raw body
+        }
+        throw Exception(
+            'Failed to complete habit (Status code: ${response.statusCode}): $errorMessage');
+      }
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().startsWith('Exception: Failed to complete habit')) {
+        rethrow;
+      }
+      throw Exception(
+          'Network error or server unreachable during completion: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> hideHabit(String habitId) async {
+    final Uri hideUri = Uri.parse('$_baseUrl/habits/$habitId/hide');
+    try {
+      final headers = await _getAuthHeaders();
+      headers.remove(
+          'Content-Type'); // PUT might not need content-type if body is empty
+      final response = await http.put(hideUri, headers: headers); // Use PUT
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to hide habit: ${response.body}');
+      }
+    } catch (e) {
+      /* ... error handling ... */ rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> showHabit(String habitId) async {
+    final Uri showUri = Uri.parse('$_baseUrl/habits/$habitId/show');
+    try {
+      final headers = await _getAuthHeaders();
+      headers.remove('Content-Type');
+      final response = await http.put(showUri, headers: headers); // Use PUT
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to show habit: ${response.body}');
+      }
+    } catch (e) {
+      /* ... error handling ... */ rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getHiddenHabits() async {
+    final Uri hiddenUri = Uri.parse('$_baseUrl/habits/hidden');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(hiddenUri, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception('Failed to load hidden habits: ${response.body}');
+      }
+    } catch (e) {
+      /* ... error handling ... */ rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getTodaysHabitHistory(String habitId) async {
+    final Uri historyUri = Uri.parse('$_baseUrl/habits/$habitId/history/today');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(historyUri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        return null; // No history found for today is not an error here
+      } else {
+        throw Exception('Failed to load today\'s history: ${response.body}');
+      }
+    } catch (e) {
+      /* ... error handling ... */ rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getHabitHistory(String habitId) async {
+    // Returns a List
+    final Uri historyUri = Uri.parse('$_baseUrl/habits/$habitId/history');
+
+    try {
+      final headers = await _getAuthHeaders(); // Get headers with token
+      final response = await http.get(
+        historyUri,
+        headers: headers, // Use authenticated headers
+      );
+
+      if (response.statusCode == 200) {
+        // Backend sends back a List of history documents
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception(
+            'Failed to load history for habit $habitId (Status code: ${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().startsWith('Exception: Failed to load history')) {
+        rethrow;
+      }
+      throw Exception(
+          'Network error or server unreachable fetching history: $e');
+    }
+  }
 }
