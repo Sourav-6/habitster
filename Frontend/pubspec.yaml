@@ -20,6 +20,9 @@ dependencies:
   salomon_bottom_bar: ^3.3.2
   table_calendar: ^3.1.2
   intl: ^0.20.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:

@@ -8,6 +8,7 @@ require("dotenv").config();
 
 // NEW: Import Appwrite SDK
 const Appwrite = require("node-appwrite");
+const habitAgent = require("./agent/habitAgent");
 
 // NEW: Initialize the Appwrite Client
 const client = new Appwrite.Client();
@@ -129,6 +130,66 @@ app.post("/api/auth/register", async (req, res) => {
       // NEW: Send back the full error details as a string
       error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
+  }
+});
+
+app.post("/api/agent/chat", authMiddleware, async (req, res) => {
+  console.log("AI CHAT HIT:", req.body);
+  try {
+    const { message } = req.body;
+    const reply = await habitAgent.processMessage(req.userId, message);
+    res.status(200).json({ reply });
+  } catch (e) {
+    console.error("AGENT ERROR:", e);
+    res.status(500).json({
+      message: "Agent error",
+      error: e.message,
+    });
+  }
+});
+
+app.get("/api/agent/intervene", authMiddleware, async (req, res) => {
+  const reply = await habitAgent.autoIntervene(req.userId);
+  if (!reply) return res.status(204).end();
+  res.json({ reply });
+});
+
+app.get("/api/agent/suggestion", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      HABITS_COLLECTION_ID,
+      [Appwrite.Query.equal("userId", userId)]
+    );
+
+    if (response.documents.length === 0) {
+      return res.json({ show: false });
+    }
+
+    const hasBroken = response.documents.some((h) => h.currentStreak === 0);
+    const maxStreak = Math.max(
+      ...response.documents.map((h) => h.currentStreak || 0)
+    );
+
+    if (hasBroken) {
+      return res.json({
+        show: true,
+        message: "You missed a habit recently. AI Coach can help you restart.",
+      });
+    }
+
+    if (maxStreak >= 5) {
+      return res.json({
+        show: true,
+        message: "Great consistency! AI Coach has a suggestion.",
+      });
+    }
+
+    res.json({ show: false });
+  } catch (e) {
+    res.json({ show: false });
   }
 });
 

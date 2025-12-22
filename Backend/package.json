@@ -14,6 +14,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "nanoid": "^3.3.7",
-    "node-appwrite": "^20.2.1"
+    "node-appwrite": "^20.2.1",
+    "node-fetch": "^3.3.2"
   }
 }

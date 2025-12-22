@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/chat_message.dart';
 
 class ApiService {
   // CORRECT: Define _baseUrl INSIDE the class
@@ -436,6 +437,61 @@ class ApiService {
       }
     } catch (e) {
       /* ... error handling ... */ rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getAiSuggestion() async {
+    final uri = Uri.parse('$_baseUrl/agent/suggestion');
+    final headers = await _getAuthHeaders();
+
+    final response = await http.get(uri, headers: headers);
+    return json.decode(response.body);
+  }
+
+  Future<String> sendMessageToAgent(String message) async {
+    final Uri uri = Uri.parse('$_baseUrl/agent/chat');
+
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode({'message': message}),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body)['reply'];
+    } else {
+      throw Exception('Agent failed');
+    }
+  }
+
+  Future<String> sendMessageToAgentWithContext(
+    String message,
+    List<ChatMessage> context,
+  ) async {
+    final uri = Uri.parse('$_baseUrl/agent/chat');
+    final headers = await _getAuthHeaders();
+
+    final body = {
+      'message': message,
+      'context': context
+          .map((m) => {
+                'role': m.role,
+                'text': m.text,
+              })
+          .toList(),
+    };
+
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body)['reply'];
+    } else {
+      throw Exception('Agent error: ${response.body}');
     }
   }
 
