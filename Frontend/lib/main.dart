@@ -3,6 +3,7 @@ import 'package:flutter/services.dart'; // Add this import for SystemChrome
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/obs/onboarding_screen.dart'; // Import the new file
 import 'screens/accountCreation/signupin.dart'; // Import the SignUpIn screen
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,8 @@ void main() async {
   // Check if onboarding has been shown
   final prefs = await SharedPreferences.getInstance();
   final showOnboarding = prefs.getBool('showOnboarding') ?? true;
+  await Hive.initFlutter();
+  await Hive.openBox('chat_history');
 
   runApp(MyApp(showOnboarding: showOnboarding));
 }

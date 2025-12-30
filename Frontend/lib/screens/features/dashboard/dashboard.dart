@@ -5,6 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../habits/habits.dart';
 import '../tasks/tasks.dart';
+import '../settings/settings_screen.dart';
+import '../chatBot/chat_screen.dart';
+import '../../../services/api_service.dart';
 
 // App theme colors
 class AppColors {
@@ -30,10 +33,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     const HomeScreen(),
     const TasksScreen(), // Using our new TasksScreen
     const HabitsScreen(), // Using our new HabitsScreen
-    const ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
+    // Direct mapping:
+    // Tap index 0 (Home)   -> Screen index 0
+    // Tap index 1 (Tasks)  -> Screen index 1
+    // Tap index 2 (Habits) -> Screen index 2
     setState(() {
       _selectedIndex = index;
     });
@@ -41,85 +47,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Use the adjusted index to show the correct screen
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       extendBody: true,
-      body: _screens[_selectedIndex],
+      body: _screens[_selectedIndex], // Use _selectedIndex directly
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
   Widget _buildBottomNavigationBar() {
-    return Stack(
-      alignment: Alignment.topCenter,
-      clipBehavior: Clip.none,
-      children: [
-        // Navigation bar background
-        Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          margin: const EdgeInsets.only(bottom: 35),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          height: 72,
-          decoration: BoxDecoration(
-            color: AppColors.navBarColor,
-            borderRadius: BorderRadius.circular(35),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(20), // 0.08 opacity = 20 alpha
-                blurRadius: 10,
-                spreadRadius: 0,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.black.withAlpha(8), // 0.03 opacity = 8 alpha
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    // No Stack needed anymore
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.9, // Adjust width if needed
+      margin: const EdgeInsets.only(
+          bottom: 35, left: 20, right: 20), // Use margin for centering/spacing
+      padding:
+          const EdgeInsets.symmetric(vertical: 10), // Adjust vertical padding
+      height: 72, // May need slight adjustment
+      decoration: BoxDecoration(
+        color: AppColors.navBarColor,
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(0, Icons.home_rounded),
-              _buildNavItem(1, Icons.checklist_rounded),
-              const SizedBox(width: 50),
-              _buildNavItem(2, Icons.auto_awesome_rounded),
-              _buildNavItem(3, Icons.person_rounded),
-            ],
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
           ),
-        ),
+        ],
+      ),
+      child: Row(
+        // Use spaceEvenly for equal spacing AROUND each item
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment:
+            CrossAxisAlignment.center, // Center items vertically
+        children: [
+          // Item 1: Home
+          _buildNavItem(0, Icons.home_rounded, isSelected: _selectedIndex == 0),
 
-        // Floating action button
-        Positioned(
-          bottom: 45,
-          child: _buildFloatingActionButton(),
-        ),
-      ],
+          // Item 2: Tasks
+          _buildNavItem(1, Icons.checklist_rounded,
+              isSelected: _selectedIndex == 1),
+
+          // Item 3: FAB (Now directly in the Row)
+          _buildFloatingActionButton(), // Use the existing FAB builder function
+
+          // Item 4: Habits
+          _buildNavItem(2, Icons.auto_awesome_rounded,
+              isSelected: _selectedIndex == 2),
+        ],
+      ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon) {
-    final bool isSelected = _selectedIndex == index;
-
-    // Special color for the tasks icon (index 1)
+  Widget _buildNavItem(int index, IconData icon, {required bool isSelected}) {
     Color iconColor;
-    if (index == 1) { // Tasks icon
-      iconColor = isSelected
-          ? const Color(0xFFFF4747) // Use #FF4747 for tasks icon when selected
-          : Colors.black.withAlpha(153);
+    // Adjust index for screen mapping if needed for special coloring
+    int screenIndex = index > 1 ? index - 1 : index;
+
+    if (screenIndex == 1) {
+      // Tasks icon special color
+      iconColor =
+          isSelected ? AppColors.primaryColor : Colors.black.withAlpha(153);
     } else {
-      iconColor = isSelected
-          ? AppColors.primaryColor
-          : Colors.black.withAlpha(153); // 0.6 opacity = 153 alpha
+      iconColor =
+          isSelected ? AppColors.primaryColor : Colors.black.withAlpha(153);
     }
 
     return IconButton(
-      icon: Icon(
-        icon,
-        color: iconColor,
-        size: 26,
-      ),
+      icon: Icon(icon, color: iconColor, size: 26),
+      // Pass the original tap index to _onItemTapped
       onPressed: () => _onItemTapped(index),
     );
   }
@@ -127,32 +131,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildFloatingActionButton() {
     return GestureDetector(
       onTap: () {
-        // Action for AI chatbot
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI Chatbot coming soon!'))
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ChatScreen(),
+          ),
         );
       },
-      child: Container(
-        width: 58,
-        height: 58,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF6A11CB), // Deep purple
-              Color(0xFF2575FC), // Blue
-              Color(0xFF00CCFF), // Cyan
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          // Removed the glow/shadow effect
-        ),
-        child: const Icon(
-          Icons.chat_bubble_outline_rounded,
-          color: AppColors.textColorLight,
-          size: 26,
-        ),
+      child: Icon(
+        Icons.chat_bubble_outline_rounded,
+        color: Colors.black.withAlpha(153),
+        size: 26,
       ),
     );
   }
@@ -203,7 +192,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   DateTime _selectedDate = DateTime.now();
   late AnimationController _animationController;
 
@@ -243,20 +233,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // Stats aligned to the left
           Row(
             children: [
-              _buildStatItem(Icons.local_fire_department_rounded, '5', 'Streak', Colors.deepOrange),
+              _buildStatItem(Icons.local_fire_department_rounded, '5', 'Streak',
+                  Colors.deepOrange),
               const SizedBox(width: 30),
               _buildStatItem(Icons.star_rounded, '120', 'Karma', Colors.red),
             ],
           ),
-          // Notification bell on the right
           IconButton(
             icon: const Icon(
-              Icons.notifications_outlined,
+              // Change icon
+              Icons.settings_rounded,
               color: Color(0xFF757575),
               size: 26,
             ),
             onPressed: () {
-              // Handle notification bell tap
+              // Navigate to the new Settings Screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        const SettingsScreen()), // We'll create this next
+              );
             },
           ),
         ],
@@ -264,7 +261,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildStatItem(IconData icon, String value, String label, Color color) {
+  Widget _buildStatItem(
+      IconData icon, String value, String label, Color color) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -311,7 +309,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStatsSection(), // Stats section moved to the top
-                  const SizedBox(height: 10), // Small space between stats and date picker
+                  const SizedBox(height: 10),
+                  // 🔹 AI SUGGESTION CARD (ADD HERE)
+                  FutureBuilder(
+                    future: ApiService().getAiSuggestion(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox();
+
+                      final data = snapshot.data as Map<String, dynamic>;
+                      if (data['show'] != true) return const SizedBox();
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ChatScreen()),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withAlpha(40),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.smart_toy),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(data['message'])),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ), // Small space between stats and date picker
                   _buildDateTimeline(),
                   const SizedBox(height: 20),
                   // Add your home screen content here
@@ -349,40 +382,54 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 // Pink gradient blob
                 Positioned(
-                  top: -100 + 50 * math.sin(_animationController.value * math.pi * 0.7),
-                  left: -80 + 40 * math.cos(_animationController.value * math.pi * 0.5),
+                  top: -100 +
+                      50 * math.sin(_animationController.value * math.pi * 0.7),
+                  left: -80 +
+                      40 * math.cos(_animationController.value * math.pi * 0.5),
                   child: _buildGradientBlob(
                     [
                       const Color(0xFFFF0066).withAlpha(30), // Pink
                       const Color(0xFFFF9E80).withAlpha(20), // Light orange
                     ],
-                    250 + 50 * math.sin(_animationController.value * math.pi * 0.6),
+                    250 +
+                        50 *
+                            math.sin(
+                                _animationController.value * math.pi * 0.6),
                   ),
                 ),
 
                 // Yellow-purple gradient blob
                 Positioned(
                   bottom: MediaQuery.of(context).size.height / 4,
-                  right: -120 + 60 * math.cos(_animationController.value * math.pi * 0.4),
+                  right: -120 +
+                      60 * math.cos(_animationController.value * math.pi * 0.4),
                   child: _buildGradientBlob(
                     [
                       const Color(0xFFf8e356).withAlpha(25), // Yellow
                       const Color(0xFF6A11CB).withAlpha(15), // Purple
                     ],
-                    280 + 60 * math.sin(_animationController.value * math.pi * 0.5),
+                    280 +
+                        60 *
+                            math.sin(
+                                _animationController.value * math.pi * 0.5),
                   ),
                 ),
 
                 // Blue-cyan gradient blob
                 Positioned(
                   top: MediaQuery.of(context).size.height / 3,
-                  left: MediaQuery.of(context).size.width / 3 - 50 + 70 * math.sin(_animationController.value * math.pi * 0.3),
+                  left: MediaQuery.of(context).size.width / 3 -
+                      50 +
+                      70 * math.sin(_animationController.value * math.pi * 0.3),
                   child: _buildGradientBlob(
                     [
                       const Color(0xFF00CCFF).withAlpha(20), // Cyan
                       const Color(0xFF2979FF).withAlpha(15), // Blue
                     ],
-                    200 + 40 * math.cos(_animationController.value * math.pi * 0.6),
+                    200 +
+                        40 *
+                            math.cos(
+                                _animationController.value * math.pi * 0.6),
                   ),
                 ),
 
@@ -395,7 +442,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       const Color(0xFFFF4081).withAlpha(25), // Pink
                       const Color(0xFFFF80AB).withAlpha(15), // Light pink
                     ],
-                    100 + 20 * math.sin(_animationController.value * math.pi * 0.8),
+                    100 +
+                        20 *
+                            math.sin(
+                                _animationController.value * math.pi * 0.8),
                   ),
                 ),
 
@@ -407,7 +457,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       const Color(0xFF64FFDA).withAlpha(20), // Teal
                       const Color(0xFF1DE9B6).withAlpha(15), // Light teal
                     ],
-                    80 + 15 * math.cos(_animationController.value * math.pi * 0.7),
+                    80 +
+                        15 *
+                            math.cos(
+                                _animationController.value * math.pi * 0.7),
                   ),
                 ),
               ],
@@ -417,7 +470,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         // Glassmorphic overlay
         BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60), // Increased blur for more aesthetic effect
+          filter: ImageFilter.blur(
+              sigmaX: 60,
+              sigmaY: 60), // Increased blur for more aesthetic effect
           child: Container(
             color: Colors.white.withAlpha(20), // Very subtle white overlay
           ),
@@ -449,14 +504,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
 
     // Generate 7 days starting from Sunday
-    final dates = List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+    final dates =
+        List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
 
     return Container(
       height: 85,
       width: double.infinity, // Ensure container takes full width
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withAlpha(230), // More transparent to show glassmorphic effect
+        color: Colors.white
+            .withAlpha(230), // More transparent to show glassmorphic effect
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(13), // 0.05 opacity = 13 alpha
@@ -492,7 +549,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         )
                       : null,
                   color: isToday && !isSelected
-                      ? AppColors.primaryColor.withAlpha(26) // 0.1 opacity = 26 alpha
+                      ? AppColors.primaryColor
+                          .withAlpha(26) // 0.1 opacity = 26 alpha
                       : null,
                 ),
                 child: Column(
@@ -512,7 +570,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : AppColors.textColorDark,
+                        color:
+                            isSelected ? Colors.white : AppColors.textColorDark,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -520,7 +579,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       DateFormat('MMM').format(date).substring(0, 3),
                       style: TextStyle(
                         fontSize: 11,
-                        color: isSelected ? Colors.white.withAlpha(230) : Colors.grey[500], // 0.9 opacity = 230 alpha
+                        color: isSelected
+                            ? Colors.white.withAlpha(230)
+                            : Colors.grey[500], // 0.9 opacity = 230 alpha
                       ),
                     ),
                   ],
@@ -529,196 +590,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             );
           }),
         ),
-      ),
-    );
-  }
-}
-
-// Removed the old TodoListScreen and HabitsScreen classes as we're now using the ones from separate files
-
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Glassmorphic background with blurred blobs
-          _buildGlassmorphicBackground(),
-
-          // Main content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Profile',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black.withAlpha(204), // 0.8 opacity = 204 alpha
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Your profile information will appear here',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black.withAlpha(153), // 0.6 opacity = 153 alpha
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGlassmorphicBackground() {
-    return Stack(
-      children: [
-        // Background gradient
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF9F9FF), // Very light purple/white
-                Color(0xFFF0F8FF), // Very light blue
-              ],
-            ),
-          ),
-        ),
-
-        // Animated blobs with more attractive design
-        AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return Stack(
-              children: [
-                // Pink gradient blob
-                Positioned(
-                  top: -100 + 50 * math.sin(_animationController.value * math.pi * 0.7),
-                  right: -80 + 40 * math.cos(_animationController.value * math.pi * 0.5),
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFFFF0066).withAlpha(30), // Pink
-                      const Color(0xFFFF9E80).withAlpha(20), // Light orange
-                    ],
-                    250 + 50 * math.sin(_animationController.value * math.pi * 0.6),
-                  ),
-                ),
-
-                // Yellow-purple gradient blob
-                Positioned(
-                  bottom: MediaQuery.of(context).size.height / 4,
-                  left: -120 + 60 * math.cos(_animationController.value * math.pi * 0.4),
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFFf8e356).withAlpha(25), // Yellow
-                      const Color(0xFF6A11CB).withAlpha(15), // Purple
-                    ],
-                    280 + 60 * math.sin(_animationController.value * math.pi * 0.5),
-                  ),
-                ),
-
-                // Blue-cyan gradient blob
-                Positioned(
-                  top: MediaQuery.of(context).size.height / 3,
-                  right: MediaQuery.of(context).size.width / 3 - 50 + 70 * math.sin(_animationController.value * math.pi * 0.3),
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFF00CCFF).withAlpha(20), // Cyan
-                      const Color(0xFF2979FF).withAlpha(15), // Blue
-                    ],
-                    200 + 40 * math.cos(_animationController.value * math.pi * 0.6),
-                  ),
-                ),
-
-                // Small decorative blobs
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.6,
-                  right: MediaQuery.of(context).size.width * 0.7,
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFFFF4081).withAlpha(25), // Pink
-                      const Color(0xFFFF80AB).withAlpha(15), // Light pink
-                    ],
-                    100 + 20 * math.sin(_animationController.value * math.pi * 0.8),
-                  ),
-                ),
-
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.2,
-                  right: MediaQuery.of(context).size.width * 0.6,
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFF64FFDA).withAlpha(20), // Teal
-                      const Color(0xFF1DE9B6).withAlpha(15), // Light teal
-                    ],
-                    80 + 15 * math.cos(_animationController.value * math.pi * 0.7),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-
-        // Glassmorphic overlay
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60), // Increased blur for more aesthetic effect
-          child: Container(
-            color: Colors.white.withAlpha(20), // Very subtle white overlay
-          ),
-        ),
-      ],
-    );
-  }
-
-  // New method for creating gradient blobs
-  Widget _buildGradientBlob(List<Color> colors, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(size / 2),
       ),
     );
   }

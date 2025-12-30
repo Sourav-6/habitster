@@ -1,23 +1,28 @@
 name: habitster
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_svg: ^2.0.9
+  flutter_secure_storage: ^9.2.2
   http: ^1.2.1
   cupertino_icons: ^1.0.6
   lottie: ^2.7.0
   shared_preferences: ^2.2.2
   google_fonts: ^6.1.0
   salomon_bottom_bar: ^3.3.2
-  intl: ^0.18.1
+  table_calendar: ^3.1.2
+  intl: ^0.20.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
