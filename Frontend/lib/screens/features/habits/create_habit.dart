@@ -183,7 +183,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<String>(
-                      value: _selectedDurationUnit,
+                      initialValue: _selectedDurationUnit,
                       items: ['days', 'weeks', 'months']
                           .map((unit) =>
                               DropdownMenuItem(value: unit, child: Text(unit)))
@@ -199,7 +199,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
 
               // Frequency Type
               DropdownButtonFormField<String>(
-                value: _selectedFrequencyType,
+                initialValue: _selectedFrequencyType,
                 items: [
                   'daily',
                   'every_x_days',

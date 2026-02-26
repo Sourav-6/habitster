@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/chat_message.dart';
+import 'profile_service.dart';
 
 class ApiService {
+// Appwrite client and account instance
+
   // CORRECT: Define _baseUrl INSIDE the class
   static const String _baseUrl = 'http://10.0.2.2:3000/api';
 
@@ -15,6 +18,10 @@ class ApiService {
   // Method to save the token
   Future<void> _saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
+  }
+
+  Future<void> saveToken(String token) async {
+    await _saveToken(token);
   }
 
   // Method to get the token
@@ -34,6 +41,10 @@ class ApiService {
       'Content-Type': 'application/json; charset=UTF-8',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  Future<void> loginWithGoogleToken(String token) async {
+    await _saveToken(token);
   }
 
   Future<Map<String, dynamic>> registerUser(
@@ -84,6 +95,7 @@ class ApiService {
           await _saveToken(data['token']); // <-- Save the token on login
           // Optional debug print
         }
+        await ProfileService.setEmail(email);
         return data;
       } else {
         throw Exception(
@@ -440,14 +452,6 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getAiSuggestion() async {
-    final uri = Uri.parse('$_baseUrl/agent/suggestion');
-    final headers = await _getAuthHeaders();
-
-    final response = await http.get(uri, headers: headers);
-    return json.decode(response.body);
-  }
-
   Future<String> sendMessageToAgent(String message) async {
     final Uri uri = Uri.parse('$_baseUrl/agent/chat');
 
@@ -493,6 +497,17 @@ class ApiService {
     } else {
       throw Exception('Agent error: ${response.body}');
     }
+  }
+
+  Future<String?> getProactiveMessage() async {
+    final uri = Uri.parse('$_baseUrl/agent/proactive');
+    final headers = await _getAuthHeaders();
+
+    final res = await http.get(uri, headers: headers);
+    if (res.statusCode == 204) return null;
+
+    final data = json.decode(res.body);
+    return data['message'];
   }
 
   Future<List<dynamic>> getHabitHistory(String habitId) async {

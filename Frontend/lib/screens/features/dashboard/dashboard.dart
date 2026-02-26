@@ -7,7 +7,6 @@ import '../habits/habits.dart';
 import '../tasks/tasks.dart';
 import '../settings/settings_screen.dart';
 import '../chatBot/chat_screen.dart';
-import '../../../services/api_service.dart';
 
 // App theme colors
 class AppColors {
@@ -161,7 +160,7 @@ class ScreenWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -310,41 +309,6 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   _buildStatsSection(), // Stats section moved to the top
                   const SizedBox(height: 10),
-                  // 🔹 AI SUGGESTION CARD (ADD HERE)
-                  FutureBuilder(
-                    future: ApiService().getAiSuggestion(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox();
-
-                      final data = snapshot.data as Map<String, dynamic>;
-                      if (data['show'] != true) return const SizedBox();
-
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const ChatScreen()),
-                          );
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withAlpha(40),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.smart_toy),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(data['message'])),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ), // Small space between stats and date picker
                   _buildDateTimeline(),
                   const SizedBox(height: 20),
                   // Add your home screen content here

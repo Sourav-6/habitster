@@ -703,27 +703,28 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                         await _showAddSubtaskDialog();
                     // --- Use WidgetsBinding to add to state ---
                     if (newSubtask != null) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          setState(() {
-                            _subtasks.add(newSubtask);
-                            // Initialize checked state
-                            final subtaskId = newSubtask['\$id'] as String;
-                            final groupName =
-                                newSubtask['optionGroupName'] as String?;
-                            final isRequired =
-                                newSubtask['isRequired'] as bool? ?? true;
-                            if (!isRequired && groupName != null) {
-                              if (!_selectedOptionInGroup
-                                  .containsKey(groupName)) {
-                                _selectedOptionInGroup[groupName] = null;
-                              }
-                            } else {
-                              _checkedRequiredSubtasks[subtaskId] = false;
-                            }
-                          }); // End setState
+                      if (!mounted) return;
+
+                      setState(() {
+                        final subtaskId = newSubtask['\$id'] as String;
+                        final groupName =
+                            newSubtask['optionGroupName'] as String?;
+                        final isRequired =
+                            newSubtask['isRequired'] as bool? ?? true;
+
+                        // 🔑 IMPORTANT: initialize optional group BEFORE UI sees it
+                        if (!isRequired && groupName != null) {
+                          _selectedOptionInGroup.putIfAbsent(
+                              groupName, () => null);
                         }
-                      }); // End addPostFrameCallback
+
+                        _subtasks.add(newSubtask);
+
+                        if (isRequired) {
+                          _checkedRequiredSubtasks[subtaskId] = false;
+                        }
+                      });
+                      // End addPostFrameCallback
                     }
                     // --- End Use ---
                   },
@@ -764,11 +765,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors
-                                .white, // White indicator on colored button
+                            color: Color.fromARGB(255, 255, 255,
+                                255), // White indicator on colored button
                           ),
                         )
-                      : const Text('Complete for Today'),
+                      : const Text('Complete for Today',
+                          style: TextStyle(color: Colors.white)),
                 ),
               ),
           ],
@@ -866,12 +868,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               ? (bool? value) {
                   // Only allow changes if enabled
                   if (value != null) {
-                    Future.delayed(Duration.zero, () {
-                      if (mounted) {
-                        setState(() {
-                          _checkedRequiredSubtasks[subtaskId] = value;
-                        });
-                      }
+                    if (!mounted) return;
+                    setState(() {
+                      _checkedRequiredSubtasks[subtaskId] = value;
                     });
                   }
                 }
@@ -887,40 +886,48 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     }
 
     // --- Render Optional Groups ---
-    optionalGroups.forEach((groupName, subtasksInGroup) {
-      children.add(Padding(
-        // Add padding for group title/separator
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Text('Choose one: $groupName',
-            style: TextStyle(color: Colors.grey[700])),
-      ));
 
-      children.addAll(subtasksInGroup.map((subtask) {
-        final subtaskId = subtask['\$id'] as String;
-        return RadioListTile<String>(
-          title: Text(subtask['subtaskName'] ?? 'No Name'),
-          value: subtaskId, // The value of this radio button is its own ID
-          groupValue: _selectedOptionInGroup[
-              groupName], // The currently selected ID for this group
-          onChanged: enabled
-              ? (String? selectedId) {
-                  // Only allow changes if enabled
-                  Future.delayed(Duration.zero, () {
-                    if (mounted) {
-                      setState(() {
-                        _selectedOptionInGroup[groupName] = selectedId;
-                      });
-                    }
-                  });
-                }
-              : null,
-          dense: true,
-          controlAffinity: ListTileControlAffinity.leading,
-        );
-      }));
-      // Add a divider after each group if needed
+    optionalGroups.forEach((groupName, subtasksInGroup) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Text(
+            'Choose one: $groupName',
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+        ),
+      );
+      _selectedOptionInGroup.putIfAbsent(groupName, () => null);
+
+      children.add(
+        RadioGroup<String>(
+          groupValue: _selectedOptionInGroup[groupName],
+          onChanged: (String? selectedId) {
+            if (!enabled || !mounted) return;
+
+            setState(() {
+              _selectedOptionInGroup[groupName] = selectedId;
+            });
+          },
+          child: Column(
+            children: subtasksInGroup.map((subtask) {
+              final subtaskId = subtask['\$id'] as String;
+
+              return RadioListTile<String>(
+                title: Text(subtask['subtaskName'] ?? 'No Name'),
+                value: subtaskId,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+              );
+            }).toList(),
+          ),
+        ),
+      );
+
       children.add(const Divider(thickness: 1, height: 20));
     });
+
+    // Add a divider after each group if needed
 
     // Remove the last divider if it exists
     if (children.isNotEmpty && children.last is Divider) {
@@ -974,7 +981,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedType,
+                        initialValue: selectedType,
                         decoration:
                             const InputDecoration(labelText: 'Subtask Type'),
                         items: ['Required (AND)', 'Optional (OR)']
@@ -990,7 +997,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       if (selectedType == 'Optional (OR)') ...[
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: selectedGroupName,
+                          initialValue: selectedGroupName,
                           hint: const Text('Select group or create new'),
                           decoration: const InputDecoration(
                               labelText: 'Optional Group'),
