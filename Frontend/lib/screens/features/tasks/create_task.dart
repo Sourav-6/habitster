@@ -138,7 +138,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       _isRecurring = value;
                     });
                   },
-                  activeColor: primaryColor, // Use your primary color
+                  activeThumbColor: primaryColor, // Use your primary color
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                 ),

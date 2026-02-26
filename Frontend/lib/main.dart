@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import for SystemChrome
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/obs/onboarding_screen.dart'; // Import the new file
-import 'screens/accountCreation/signupin.dart'; // Import the SignUpIn screen
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'screens/obs/onboarding_screen.dart';
+import 'screens/accountCreation/signupin.dart';
+import 'theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
-  ]); // Lock to portrait mode
+  ]);
 
-  // Check if onboarding has been shown
+  // Onboarding flag
   final prefs = await SharedPreferences.getInstance();
   final showOnboarding = prefs.getBool('showOnboarding') ?? true;
-  await Hive.initFlutter();
-  await Hive.openBox('chat_history');
 
-  runApp(MyApp(showOnboarding: showOnboarding));
+  // Hive init
+  await Hive.initFlutter();
+  await Hive.openBox('chat_sessions');
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: MyApp(showOnboarding: showOnboarding),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -28,23 +37,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Habitster',
-      debugShowCheckedModeBanner: false, // Hide the debug banner
-      theme: ThemeData(
-        primaryColor: const Color(0xFFFF0066), // Changed from yellow to pink
-        scaffoldBackgroundColor: Colors.white, // Changed from cream to white
-        fontFamily: 'Poppins', // Added font
-        textTheme: const TextTheme(
-          headlineLarge:
-              TextStyle(color: Color(0xFF212121), fontSize: 28), // Graphite
-          bodyMedium:
-              TextStyle(color: Color(0xFF757575), fontSize: 16), // Cool Grey
-        ),
-      ),
-      home: showOnboarding
-          ? const OnboardingScreen()
-          : const SignUpIn(), // Show SignUpIn instead of Register
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          title: 'Habitster',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeProvider.mode,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFFF0066),
+              brightness: Brightness.light,
+            ),
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFFF0066),
+              brightness: Brightness.dark,
+            ),
+          ),
+          home: showOnboarding ? const OnboardingScreen() : const SignUpIn(),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,11 @@
 import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
 import '../../accountCreation/signupin.dart'; // For navigation after logout
+import 'profile_screen.dart';
+import 'dart:io';
+import '../../../services/profile_service.dart';
+import 'package:provider/provider.dart';
+import '../../../theme/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -48,16 +53,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // --- Profile Option (Placeholder) ---
           ListTile(
-            leading: const Icon(Icons.person_outline),
+            leading: FutureBuilder<String?>(
+              future: ProfileService.getImagePath(),
+              builder: (context, snapshot) {
+                final path = snapshot.data;
+
+                if (path != null && path.isNotEmpty) {
+                  return CircleAvatar(
+                    radius: 22,
+                    backgroundImage: FileImage(File(path)),
+                    backgroundColor: Colors.grey[200],
+                  );
+                }
+
+                return const CircleAvatar(
+                  radius: 22,
+                  child: Icon(Icons.person_outline),
+                );
+              },
+            ),
             title: const Text('Profile'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Profile screen coming soon!')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileScreen(),
+                ),
               );
             },
           ),
           const Divider(height: 1), // Separator
+
+          ListTile(
+            leading: const Icon(Icons.dark_mode_outlined),
+            title: const Text('Dark Mode'),
+            trailing: Consumer<ThemeProvider>(
+              builder: (context, theme, _) {
+                return Switch(
+                  value: theme.mode == ThemeMode.dark,
+                  onChanged: (val) {
+                    theme.toggle(val);
+                  },
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1),
 
           // Add more settings options here later (e.g., Appearance, Notifications)
 

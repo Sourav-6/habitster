@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
 import '../../../models/chat_message.dart';
 import '../../../services/chat_history_service.dart';
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -11,6 +12,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  ChatSession? session;
   final controller = TextEditingController();
   final api = ApiService();
 
@@ -19,8 +21,94 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    messages = ChatHistoryService.getMessages();
+    session = ChatHistoryService.createNewSession();
+    messages = [];
+    maybeTriggerProactive();
   }
+
+  void openSession(ChatSession s) {
+    ChatHistoryService.setActiveSession(s);
+    setState(() {
+      session = s;
+      messages = List.from(s.messages);
+    });
+  }
+
+// Start a new chat session......
+
+  void startNewChat() {
+    if (messages.isNotEmpty && ChatHistoryService.isMeaningfulChat(messages)) {
+      final title = ChatHistoryService.generateTitle(messages);
+
+      final finishedSession = ChatSession(
+        id: session!.id,
+        title: title,
+        messages: List.from(messages),
+        createdAt: session!.createdAt,
+      );
+
+      ChatHistoryService.saveSession(finishedSession);
+    }
+
+    session = ChatHistoryService.createNewSession();
+    setState(() {
+      messages = [];
+    });
+  }
+
+// Clear chat messages in the current session......
+
+  void clearChat() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Clear chat?"),
+        content: const Text("This will clear the current chat only."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Clear"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        messages.clear();
+      });
+
+      // reset active session messages (do NOT save)
+      ChatHistoryService.updateActiveSessionMessages([]);
+    }
+  }
+
+// Trigger proactive message if chat is empty......
+
+  void maybeTriggerProactive() async {
+    if (messages.isNotEmpty) return;
+
+    final res = await api.getProactiveMessage();
+    if (res == null) return;
+
+    final agentMsg = ChatMessage(
+      role: "agent",
+      text: res,
+      time: DateTime.now(),
+    );
+
+    setState(() {
+      messages.add(agentMsg);
+    });
+
+    ChatHistoryService.updateActiveSessionMessages(messages);
+  }
+
+// Send message to AI agent with context......
 
   void send() async {
     final text = controller.text.trim();
@@ -35,17 +123,16 @@ class _ChatScreenState extends State<ChatScreen> {
       time: DateTime.now(),
     );
 
-    ChatHistoryService.addMessage(userMsg);
-
     setState(() {
       messages.add(userMsg);
     });
 
-    // -------- CONTEXT (last 20 messages) --------
-    final allMessages = ChatHistoryService.getMessages();
-    final contextMessages = allMessages.length <= 20
-        ? allMessages
-        : allMessages.sublist(allMessages.length - 20);
+    // -------- CONTEXT (last 20 messages from current session) --------
+    final List<ChatMessage> contextMessages = messages.length <= 20
+        ? List<ChatMessage>.from(messages)
+        : List<ChatMessage>.from(
+            messages.sublist(messages.length - 20),
+          );
 
     // -------- AGENT RESPONSE --------
     final res = await api.sendMessageToAgentWithContext(
@@ -59,44 +146,75 @@ class _ChatScreenState extends State<ChatScreen> {
       time: DateTime.now(),
     );
 
-    ChatHistoryService.addMessage(agentMsg);
-
     setState(() {
       messages.add(agentMsg);
     });
-  }
 
-  // -------- CLEAR CHAT (UI ONLY) --------
-  void clearChat() {
-    ChatHistoryService.clearCurrentChat();
-    setState(() {
-      messages.clear();
-    });
-  }
-
-  // -------- NEW CHAT --------
-  void newChat() {
-    ChatHistoryService.startNewChat();
-    setState(() {
-      messages = [];
-    });
+    // -------- UPDATE ACTIVE SESSION --------
+    ChatHistoryService.updateActiveSessionMessages(messages);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
         title: const Text("AI Coach"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: newChat,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: clearChat,
+            tooltip: "Clear Chat",
           ),
           IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: clearChat,
+            icon: const Icon(Icons.add),
+            onPressed: startNewChat,
+            tooltip: "New Chat",
           ),
         ],
+      ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  "Chats",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  children: ChatHistoryService.getSessions().map((s) {
+                    return ListTile(
+                      title: Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        DateFormat('MMM d, HH:mm').format(s.createdAt),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context); // close drawer
+                        openSession(s);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

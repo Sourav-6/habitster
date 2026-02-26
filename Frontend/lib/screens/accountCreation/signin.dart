@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'register.dart';
 import '../features/dashboard/dashboard.dart'; // Import the dashboard
 import '../../services/api_service.dart'; // Import the API service
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -12,17 +14,31 @@ class SignIn extends StatefulWidget {
   State<SignIn> createState() => _SignInState();
 }
 
-class _SignInState extends State<SignIn> {
+class _SignInState extends State<SignIn> with WidgetsBindingObserver {
   final ApiService _apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkGoogleLogin();
+    }
   }
 
   // lib/screens/accountCreation/signin.dart
@@ -69,6 +85,34 @@ class _SignInState extends State<SignIn> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _checkGoogleLogin() async {
+    try {
+      final res = await http.get(
+        Uri.parse("http://10.0.2.2:3000/auth/google/success"),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (res.statusCode != 200) return;
+
+      final data = jsonDecode(res.body);
+
+      if (data['loggedIn'] == true) {
+        final token = data['token'];
+
+        await _apiService.saveToken(token);
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
+    } catch (_) {
+      // silent fail is fine here
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register.dart';
 import 'signin.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SignUpIn extends StatelessWidget {
   const SignUpIn({super.key});
@@ -114,6 +115,32 @@ class SignUpIn extends StatelessWidget {
                 ),
               ),
               const Spacer(flex: 1), // Decreased from 2 to 1
+              const SizedBox(height: 16),
+
+              SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      // 1️⃣ Go to SignIn screen FIRST
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignIn()),
+                      );
+
+                      // 2️⃣ Small delay to ensure SignIn is mounted
+                      await Future.delayed(const Duration(milliseconds: 300));
+
+                      // 3️⃣ Launch Google OAuth
+                      final url = Uri.parse("http://10.0.2.2:3000/auth/google");
+
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    child: const Text("Continue with Google"),
+                  )),
             ],
           ),
         ),

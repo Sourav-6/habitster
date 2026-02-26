@@ -1,7 +1,12 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const app = express();
-const PORT = 3000;
+app.use(cookieParser());
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const PORT = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
+app.use(passport.initialize());
 const authMiddleware = require("./middleware/authMiddleware");
 // NEW: Import dotenv to read .env file
 require("dotenv").config();
@@ -82,6 +87,26 @@ function calculateNextDueDate(lastDueDate, frequencyType, frequencyValue) {
 }
 // --- End Helper Function ---
 
+// --- Passport Google OAuth Setup ---
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      const user = {
+        googleId: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+      };
+      done(null, user);
+    }
+  )
+);
+
 // NEW: Store your Database and Collection IDs (Get these from Appwrite!)
 const DATABASE_ID = "68f3c29000072cae03e0";
 const TASKS_COLLECTION_ID = "tasks-storage";
@@ -94,7 +119,7 @@ app.use(express.json());
 
 // --- Routes ---
 app.get("/", (req, res) => {
-  res.send("Habitster backend is running!");
+  res.send("Habitster API is running 🚀");
 });
 
 // --- API Endpoints ---
@@ -133,6 +158,8 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
+// AI Agent chat Endpoints....
+
 app.post("/api/agent/chat", authMiddleware, async (req, res) => {
   console.log("AI CHAT HIT:", req.body);
   try {
@@ -148,52 +175,18 @@ app.post("/api/agent/chat", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/agent/intervene", authMiddleware, async (req, res) => {
-  const reply = await habitAgent.autoIntervene(req.userId);
-  if (!reply) return res.status(204).end();
-  res.json({ reply });
-});
+// Proactive intervention endpoint...
 
-app.get("/api/agent/suggestion", authMiddleware, async (req, res) => {
+app.get("/api/agent/proactive", authMiddleware, async (req, res) => {
   try {
-    const userId = req.userId;
-
-    const response = await databases.listDocuments(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      [Appwrite.Query.equal("userId", userId)]
-    );
-
-    if (response.documents.length === 0) {
-      return res.json({ show: false });
-    }
-
-    const hasBroken = response.documents.some((h) => h.currentStreak === 0);
-    const maxStreak = Math.max(
-      ...response.documents.map((h) => h.currentStreak || 0)
-    );
-
-    if (hasBroken) {
-      return res.json({
-        show: true,
-        message: "You missed a habit recently. AI Coach can help you restart.",
-      });
-    }
-
-    if (maxStreak >= 5) {
-      return res.json({
-        show: true,
-        message: "Great consistency! AI Coach has a suggestion.",
-      });
-    }
-
-    res.json({ show: false });
+    const msg = await habitAgent.autoIntervene(req.userId);
+    if (!msg) return res.status(204).send();
+    res.json({ message: msg });
   } catch (e) {
-    res.json({ show: false });
+    res.status(500).json({ message: "Proactive agent error" });
   }
 });
 
-// UPDATED Login Endpoint
 // UPDATED Login Endpoint (Generates JWT)
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -233,6 +226,48 @@ app.post("/api/auth/login", async (req, res) => {
     });
   }
 });
+
+// Google OAuth Routes
+
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Google OAuth Callback Route
+
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { session: false }),
+  (req, res) => {
+    const token = jwt.sign(
+      {
+        email: req.user.email,
+        googleId: req.user.googleId,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // 🔥 Redirect back to Flutter app
+    res.redirect(`habitster://auth?token=${token}`);
+  }
+);
+
+// Check Google Auth Status Endpoint
+app.get("/auth/google/success", (req, res) => {
+  const token = req.cookies?.habitster_token;
+
+  if (!token) {
+    return res.status(200).json({ loggedIn: false });
+  }
+
+  res.status(200).json({
+    loggedIn: true,
+    token,
+  });
+});
+
 
 // NEW: Create Task Endpoint
 app.post("/api/tasks", authMiddleware, async (req, res) => {
