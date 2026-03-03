@@ -9,7 +9,7 @@ class ApiService {
 // Appwrite client and account instance
 
   // CORRECT: Define _baseUrl INSIDE the class
-  static const String _baseUrl = 'http://localhost:3000/api';
+  static const String _baseUrl = 'https://habitster.onrender.com/api';
 
 // --- NEW: Secure Storage ---
   final _storage = const FlutterSecureStorage();

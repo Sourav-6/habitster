@@ -73,7 +73,7 @@ class _SignInState extends State<SignIn> {
   }
 
   Future<void> _launchGoogleAuth() async {
-    final url = Uri.parse("http://localhost:3000/auth/google");
+    final url = Uri.parse("https://habitster.onrender.com/auth/google");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {

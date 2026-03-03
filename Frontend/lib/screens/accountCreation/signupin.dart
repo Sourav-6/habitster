@@ -127,7 +127,7 @@ class SignUpIn extends StatelessWidget {
                   height: 56,
                   child: OutlinedButton.icon(
                     onPressed: () async {
-                      final url = Uri.parse("http://localhost:3000/auth/google");
+                      final url = Uri.parse("https://habitster.onrender.com/auth/google");
                       await launchUrl(
                         url,
                         mode: LaunchMode.externalApplication,
