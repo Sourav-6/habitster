@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/chat_message.dart';
-import 'profile_service.dart';
+import 'profile_service.dart'; 
 
 class ApiService {
 // Appwrite client and account instance
 
   // CORRECT: Define _baseUrl INSIDE the class
-  static const String _baseUrl = 'http://10.0.2.2:3000/api';
+  static const String _baseUrl = 'http://localhost:3000/api';
 
 // --- NEW: Secure Storage ---
   final _storage = const FlutterSecureStorage();
@@ -48,30 +48,25 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> registerUser(
-      String email, String password) async {
-    // CORRECT: Use _baseUrl here
+      String email, String password, {String? name}) async {
     final Uri registerUri = Uri.parse('$_baseUrl/auth/register');
-
     try {
       final response = await http.post(
         registerUri,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: json.encode({'email': email, 'password': password}),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: json.encode({'email': email, 'password': password, 'name': name}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
-        throw Exception(
-            'Failed to register user (Status code: ${response.statusCode}): ${response.body}');
+        // Parse backend error message for a friendly error
+        final body = json.decode(response.body);
+        final errorMsg = body['message'] ?? 'Failed to register user';
+        throw Exception(errorMsg);
       }
     } catch (e) {
-      if (e is Exception &&
-          e.toString().startsWith('Exception: Failed to register user')) {
-        rethrow;
-      }
+      if (e is Exception && e.toString().startsWith('Exception: ')) rethrow;
       throw Exception('Network error or server unreachable: $e');
     }
   }
@@ -142,29 +137,49 @@ class ApiService {
 // ... (createTask function is above this)
 
   Future<List<dynamic>> getTasks() async {
-    // Returns a List
     final Uri tasksUri = Uri.parse('$_baseUrl/tasks');
-
     try {
-      // Note: We need to handle authentication later to send a token
-      final headers = await _getAuthHeaders(); // <-- Get headers with token
-      final response = await http.get(
-        tasksUri,
-        headers: headers, // <-- Use authenticated headers
-      );
-
+      final headers = await _getAuthHeaders();
+      final response = await http.get(tasksUri, headers: headers);
       if (response.statusCode == 200) {
-        // The backend sends back a List directly
         return json.decode(response.body) as List<dynamic>;
       } else {
-        throw Exception(
-            'Failed to load tasks (Status code: ${response.statusCode}): ${response.body}');
+        throw Exception('Failed to load tasks (Status code: ${response.statusCode}): ${response.body}');
       }
     } catch (e) {
-      if (e is Exception &&
-          e.toString().startsWith('Exception: Failed to load tasks')) {
-        rethrow;
+      if (e is Exception && e.toString().startsWith('Exception: Failed to load tasks')) rethrow;
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<List<dynamic>> getCompletedTasks() async {
+    final Uri uri = Uri.parse('$_baseUrl/tasks/completed');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception('Failed to load completed tasks (${response.statusCode}): ${response.body}');
       }
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception: Failed to load completed')) rethrow;
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getActivityStats() async {
+    final Uri uri = Uri.parse('$_baseUrl/stats/activity');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to load activity stats (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception: Failed to load activity')) rethrow;
       throw Exception('Network error or server unreachable: $e');
     }
   }
@@ -535,6 +550,57 @@ class ApiService {
       }
       throw Exception(
           'Network error or server unreachable fetching history: $e');
+    }
+  }
+
+  // --- GAMIFICATION ---
+  Future<Map<String, dynamic>> getUserProfile() async {
+    final Uri profileUri = Uri.parse('$_baseUrl/profile');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(profileUri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load user profile: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getLeaderboard() async {
+    final Uri leaderboardUri = Uri.parse('$_baseUrl/leaderboard');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(leaderboardUri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        throw Exception('Failed to load leaderboard: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateAvatar(String avatarId) async {
+    final Uri updateUri = Uri.parse('$_baseUrl/profile/avatar');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        updateUri, 
+        headers: headers,
+        body: json.encode({'avatarId': avatarId}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update avatar: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

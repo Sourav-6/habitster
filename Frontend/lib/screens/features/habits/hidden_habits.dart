@@ -1,6 +1,7 @@
 // lib/screens/features/habits/hidden_habits_screen.dart
 import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
+import '../../../widgets/habitster_loading_widget.dart';
 
 class HiddenHabitsScreen extends StatefulWidget {
   const HiddenHabitsScreen({super.key});
@@ -88,7 +89,7 @@ class _HiddenHabitsScreenState extends State<HiddenHabitsScreen> {
 
   Widget _buildBodyContent() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: HabitsterLoadingWidget(fontSize: 28));
     }
     if (_error != null) {
       return Center(child: Text('Error: $_error'));

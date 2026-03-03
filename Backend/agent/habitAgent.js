@@ -2,8 +2,8 @@ const { Databases, Query, ID } = require("node-appwrite");
 const client = require("../appwriteClient");
 const pendingActions = require("./pendingActions");
 const databases = new Databases(client);
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const Groq = require("groq-sdk");
+require("dotenv").config();
 
 const DATABASE_ID = "68f3c29000072cae03e0";
 const TASKS_COLLECTION_ID = "tasks-storage";
@@ -11,25 +11,355 @@ const HABITS_COLLECTION_ID = "habits-storage";
 const undoStore = require("./undoStore");
 const agentMemory = require("./agentMemory");
 
-async function callLLM(systemPrompt, messages) {
-  const response = await fetch("http://localhost:11434/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "phi3:latest",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      ],
-      stream: false,
-    }),
-  });
+const groq = new Groq({ apiKey: (process.env.GROQ_API_KEY || "").trim() });
 
-  const data = await response.json();
-  return data.message?.content || "I’m thinking… try again.";
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "createTask",
+      description: "Create a new task with a name and due date.",
+      parameters: {
+        type: "object",
+        properties: {
+          taskName: { type: "string", description: "Name/title of the task" },
+          dueDate: { type: "string", description: "ISO date string for when it's due" },
+          isRecurring: { type: "boolean", description: "If the task repeats" },
+          recurrenceDays: { type: "number", description: "Days between repeats" }
+        },
+        required: ["taskName", "dueDate"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "createHabit",
+      description: "Start a new habit to track consistency.",
+      parameters: {
+        type: "object",
+        properties: {
+          habitName: { type: "string", description: "Name of the habit" },
+          frequencyType: { type: "string", enum: ["daily", "specific_days", "every_x_days"] },
+          frequencyValue: { type: "string", description: "E.g. '[1,3,5]' for specific_days" }
+        },
+        required: ["habitName", "frequencyType"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "listMyData",
+      description: "Get current tasks and habits for context.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deleteTask",
+      description: "Remove a task by its ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          taskId: { type: "string" }
+        },
+        required: ["taskId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deleteHabit",
+      description: "Remove a habit by its ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          habitId: { type: "string" }
+        },
+        required: ["habitId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "updateTask",
+      description: "Update an existing task's properties.",
+      parameters: {
+        type: "object",
+        properties: {
+          taskId: { type: "string" },
+          taskName: { type: "string" },
+          dueDate: { type: "string" },
+          priority: { type: "number" },
+          isCompleted: { type: "boolean" }
+        },
+        required: ["taskId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "completeTask",
+      description: "Mark a task as completed.",
+      parameters: {
+        type: "object",
+        properties: {
+          taskId: { type: "string" }
+        },
+        required: ["taskId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "updateHabit",
+      description: "Update an existing habit's properties.",
+      parameters: {
+        type: "object",
+        properties: {
+          habitId: { type: "string" },
+          habitName: { type: "string" },
+          frequencyType: { type: "string" },
+          frequencyValue: { type: "string" },
+          difficulty: { type: "string" },
+          category: { type: "string" }
+        },
+        required: ["habitId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "completeHabit",
+      description: "Mark a habit as completed for today, updating streaks and XP.",
+      parameters: {
+        type: "object",
+        properties: {
+          habitId: { type: "string" },
+          notes: { type: "string" }
+        },
+        required: ["habitId"]
+      }
+    }
+  }
+];
+
+function calculateNextDueDate(lastDueDate, frequencyType, frequencyValue) {
+  let nextDate = new Date(lastDueDate);
+  nextDate.setUTCHours(0, 0, 0, 0);
+  switch (frequencyType) {
+    case "daily": nextDate.setUTCDate(nextDate.getUTCDate() + 1); break;
+    case "every_x_days":
+      const days = parseInt(frequencyValue, 10);
+      nextDate.setUTCDate(nextDate.getUTCDate() + (isNaN(days) ? 1 : days));
+      break;
+    case "specific_days":
+      try {
+        const scheduled = JSON.parse(frequencyValue || "[]").map(Number).map(d => d % 7).sort((a, b) => a - b);
+        if (scheduled.length === 0) { nextDate.setUTCDate(nextDate.getUTCDate() + 1); break; }
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+        while (!scheduled.includes(nextDate.getUTCDay())) { nextDate.setUTCDate(nextDate.getUTCDate() + 1); }
+      } catch (e) { nextDate.setUTCDate(nextDate.getUTCDate() + 1); }
+      break;
+    default: nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  }
+  return nextDate;
+}
+
+const GROQ_MODEL_FALLBACK = [
+  "llama-3.3-70b-versatile",
+  "llama-3.1-70b-versatile",
+  "llama-3.1-8b-instant",
+  "mixtral-8x7b-32768"
+];
+
+async function callLLM(userId, message, history = []) {
+  let lastError = null;
+
+  // Pre-flight: Fetch context so the AI knows IDs instantly
+  let userContextString = "No current habits or tasks found.";
+  try {
+    const habits = await databases.listDocuments(DATABASE_ID, HABITS_COLLECTION_ID, [Query.equal("userId", userId)]);
+    const tasks = await databases.listDocuments(DATABASE_ID, TASKS_COLLECTION_ID, [Query.equal("userId", userId)]);
+
+    const habitList = habits.documents.map(h => {
+      const done = isCompletedToday(h);
+      return `- Habit: "${h.habitName}" (ID: ${h.$id}) [Status: ${done ? "COMPLETED" : "PENDING"}]`;
+    }).join("\n");
+
+    const taskList = tasks.documents.map(t => {
+      return `- Task: "${t.taskName}" (ID: ${t.$id}) [Status: ${t.isCompleted ? "COMPLETED" : "PENDING"}]`;
+    }).join("\n");
+
+    userContextString = `Current User Data:\n${habitList}\n${taskList}`;
+  } catch (ctxErr) {
+    console.warn("[Groq Agent] Context fetch failed:", ctxErr.message);
+  }
+
+  for (const modelName of GROQ_MODEL_FALLBACK) {
+    try {
+      console.log(`[Groq Agent] Trying model: ${modelName}...`);
+      const messages = [
+        {
+          role: "system",
+          content: `You are Habitster Coach, a warm, encouraging, and actionable AI.
+          
+          Guidelines:
+          1. GREETING FLOW: If the user greets you (hi, hello, hey, etc.), ALWAYS start with a very warm, friendly welcoming greeting. 
+          2. SUMMARY: Right after the greeting, say: "I've found these habits and tasks and their completion status for you:" 
+          3. LISTING: Then, list the habits and tasks from the context below, clearly showing their [Status]. 
+          4. ACTIONABLE: Use the IDs provided below to instantly update, delete, or complete items mentioned by name.
+          5. COMPLETION: When completing a habit, use 'completeHabit'. When completing a task, use 'completeTask'.
+
+          ${userContextString}
+          
+          UserID: ${userId}`
+        },
+        ...history.map(h => ({
+          role: h.role === "assistant" ? "assistant" : "user",
+          content: h.content
+        })),
+        { role: "user", content: message }
+      ];
+
+      const response = await groq.chat.completions.create({
+        model: modelName,
+        messages: messages,
+        tools: tools,
+        tool_choice: "auto",
+        max_tokens: 1024
+      });
+
+      let responseMessage = response.choices[0].message;
+      const toolCalls = responseMessage.tool_calls;
+
+      if (toolCalls) {
+        messages.push(responseMessage);
+
+        for (const toolCall of toolCalls) {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          console.log(`[Groq Agent] Calling tool ${functionName} with:`, args);
+
+          let result;
+          try {
+            if (functionName === "createTask") {
+              result = await databases.createDocument(DATABASE_ID, TASKS_COLLECTION_ID, ID.unique(), {
+                ...args, userId, priority: 0
+              });
+            } else if (functionName === "createHabit") {
+              result = await databases.createDocument(DATABASE_ID, HABITS_COLLECTION_ID, ID.unique(), {
+                ...args,
+                userId,
+                startDate: new Date().toISOString(),
+                durationValue: 30,
+                durationUnit: "days",
+                currentStreak: 0,
+                longestStreak: 0,
+                lastCompletedDate: null,
+                nextDueDate: new Date().toISOString(),
+                isHidden: false
+              });
+            } else if (functionName === "listMyData") {
+              const habits = await databases.listDocuments(DATABASE_ID, HABITS_COLLECTION_ID, [Query.equal("userId", userId)]);
+              const tasks = await databases.listDocuments(DATABASE_ID, TASKS_COLLECTION_ID, [Query.equal("userId", userId)]);
+              result = { habits: habits.documents, tasks: tasks.documents };
+            } else if (functionName === "deleteTask") {
+              await databases.deleteDocument(DATABASE_ID, TASKS_COLLECTION_ID, args.taskId);
+              result = { status: "deleted" };
+            } else if (functionName === "deleteHabit") {
+              await databases.deleteDocument(DATABASE_ID, HABITS_COLLECTION_ID, args.habitId);
+              result = { status: "deleted" };
+            } else if (functionName === "updateTask") {
+              const { taskId, ...updates } = args;
+              result = await databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, taskId, updates);
+            } else if (functionName === "completeTask") {
+              result = await databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, args.taskId, { isCompleted: true });
+            } else if (functionName === "updateHabit") {
+              const { habitId, ...updates } = args;
+              result = await databases.updateDocument(DATABASE_ID, HABITS_COLLECTION_ID, habitId, updates);
+            } else if (functionName === "completeHabit") {
+              const habit = await databases.getDocument(DATABASE_ID, HABITS_COLLECTION_ID, args.habitId);
+              const nextDue = calculateNextDueDate(habit.nextDueDate, habit.frequencyType, habit.frequencyValue);
+              const streak = (habit.currentStreak || 0) + 1;
+
+              // Update habit
+              result = await databases.updateDocument(DATABASE_ID, HABITS_COLLECTION_ID, args.habitId, {
+                nextDueDate: nextDue.toISOString(),
+                currentStreak: streak,
+                longestStreak: Math.max(habit.longestStreak || 0, streak),
+                lastCompletedDate: new Date().toISOString()
+              });
+
+              // Create history entry
+              await databases.createDocument(DATABASE_ID, "habithistory", ID.unique(), {
+                userId,
+                habitId: args.habitId,
+                habitName: habit.habitName,
+                completionDate: new Date().toISOString(),
+                notes: args.notes || ""
+              });
+
+              // Update XP (Gamification - Basic Implementation)
+              try {
+                const profile = await databases.getDocument(DATABASE_ID, "user_profiles_", userId);
+                const diff = (habit.difficulty || "Medium").toLowerCase();
+                const xpGained = diff === "hard" ? 30 : diff === "small" ? 10 : 20;
+                let newXp = profile.xp + xpGained;
+                let newLevel = profile.level;
+                if (newXp >= newLevel * 100) newLevel += 1;
+
+                const category = (habit.category || "Productivity").toLowerCase();
+                const catUpdate = {};
+                catUpdate[`${category}Xp`] = (profile[`${category}Xp`] || 0) + xpGained;
+
+                await databases.updateDocument(DATABASE_ID, "user_profiles_", userId, {
+                  xp: newXp,
+                  level: newLevel,
+                  ...catUpdate,
+                  avatarEnergy: Math.min(100, (profile.avatarEnergy || 100) + 10),
+                  lastHabitCompletionDate: new Date().toISOString().split('T')[0]
+                });
+              } catch (e) {
+                console.error("[Groq Agent] XP Update error:", e.message);
+              }
+            }
+          } catch (err) {
+            console.error(`[Groq Agent] Tool ${functionName} error:`, err.message);
+            result = { error: err.message };
+          }
+
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: functionName,
+            content: JSON.stringify(result)
+          });
+        }
+
+        const secondResponse = await groq.chat.completions.create({
+          model: modelName,
+          messages: messages
+        });
+        return secondResponse.choices[0].message.content;
+      }
+
+      return responseMessage.content;
+    } catch (err) {
+      console.error(`[Groq Agent] Model ${modelName} failed:`, err.message);
+      lastError = err;
+      continue; // Try next model
+    }
+  }
+
+  return `Coach is having trouble connecting to the AI models. Last error: ${lastError ? lastError.message : "Unknown error"}`;
 }
 
 function isCompletedToday(habit) {
@@ -46,541 +376,43 @@ function isCompletedToday(habit) {
 async function processMessage(userId, message, context = []) {
   const msg = message.toLowerCase().trim();
 
-  // -------- HABIT COMPLETION VIA CHAT --------
-  if (
-    msg.includes("completed") ||
-    msg.includes("done") ||
-    msg.includes("finished")
-  ) {
-    const habitsRes = await databases.listDocuments(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      [Query.equal("userId", userId)]
-    );
-
-    const matched = habitsRes.documents.find((h) =>
-      msg.includes(h.habitName.toLowerCase())
-    );
-
-    if (!matched) {
-      return "Which habit did you complete?";
-    }
-
-    // already completed today?
-    if (isCompletedToday(matched)) {
-      return `You already completed "${matched.habitName}" today 👍`;
-    }
-
-    pendingActions.setPending(userId, {
-      execute: async () => {
-        // mark habit completed (reuse your existing logic)
-        await databases.updateDocument(
-          DATABASE_ID,
-          HABITS_COLLECTION_ID,
-          matched.$id,
-          {
-            lastCompletedDate: new Date().toISOString(),
-            currentStreak: (matched.currentStreak || 0) + 1,
-          }
-        );
-      },
-      successMessage: `"${matched.habitName}" marked as completed for today.`,
-    });
-
-    return `Nice! Want me to mark "${matched.habitName}" as completed for today? (yes / no)`;
-  }
-
-  // -------- HABIT DELETE VIA CHAT --------
-  if (msg.startsWith("delete habit") || msg.startsWith("remove habit")) {
-    const raw = msg
-      .replace("delete habit", "")
-      .replace("remove habit", "")
-      .trim();
-
-    if (!raw) return "Which habit do you want to delete?";
-
-    const habitsRes = await databases.listDocuments(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      [Query.equal("userId", userId)]
-    );
-
-    const habit = habitsRes.documents.find((h) =>
-      raw.includes(h.habitName.toLowerCase())
-    );
-
-    if (!habit) {
-      return `I couldn’t find a habit named "${raw}".`;
-    }
-
-    pendingActions.setPending(userId, {
-      execute: async () => {
-        await databases.deleteDocument(
-          DATABASE_ID,
-          HABITS_COLLECTION_ID,
-          habit.$id
-        );
-
-        undoStore.setUndo(userId, {
-          collectionId: HABITS_COLLECTION_ID,
-          documentId: habit.$id,
-        });
-      },
-      successMessage: `Habit "${habit.habitName}" deleted. Type "undo" to restore.`,
-    });
-
-    return `Are you sure you want to delete "${habit.habitName}"? (yes / no)`;
-  }
-
-  // -------- PENDING ACTIONS --------
-
+  // -------- PENDING ACTIONS (from previously suggested actions) --------
   const pending = pendingActions.getPending(userId);
-
   if (pending) {
     if (msg === "yes") {
       pendingActions.clearPending(userId);
       await pending.execute();
       return pending.successMessage;
     }
-
     if (msg === "no") {
       pendingActions.clearPending(userId);
       return "Okay, cancelled.";
     }
-
-    return "Please reply with yes or no.";
-  }
-
-  // If user is chatting normally → use LLM
-  if (
-    !msg.startsWith("add") &&
-    !msg.startsWith("create") &&
-    !msg.startsWith("update") &&
-    !msg.startsWith("undo")
-  ) {
-    const historyText = context.map((c) => ({
-      role: c.role === "user" ? "user" : "assistant",
-      content: c.text,
-    }));
-
-    agentMemory.updateMemory(userId, message);
-    const mem = agentMemory.getMemory(userId);
-
-    const habitsRes = await databases.listDocuments(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      [Query.equal("userId", userId)]
-    );
-
-    const tasksRes = await databases.listDocuments(
-      DATABASE_ID,
-      TASKS_COLLECTION_ID,
-      [Query.equal("userId", userId)]
-    );
-
-    const habitContext = habitsRes.documents.map((h) => {
-      const completedToday = isCompletedToday(h);
-      return `- ${h.habitName} (streak: ${h.currentStreak}, completed today: ${
-        completedToday ? "yes" : "no"
-      })`;
-    });
-
-    const taskContext = tasksRes.documents.map((t) => {
-      return `- ${t.taskName} (${t.isRecurring ? "recurring" : "one-time"})`;
-    });
-
-    const systemPrompt = `
-      You are Habitster Coach.
-
-      User habits:
-      ${habitContext.length ? habitContext.join("\n") : "No habits"}
-
-      User tasks:
-      ${taskContext.length ? taskContext.join("\n") : "No tasks"}
-
-      User struggles: ${mem.struggles.join(", ") || "unknown"}
-      User goals: ${mem.goals.join(", ") || "unknown"}
-
-      Use habits/tasks ONLY if relevant.
-
-     Identity:
-        - You are an AI habit coach built specifically for the Habitster app.
-        - You help users build habits, stay consistent, and reflect.
-        - You were designed and built by Safeer, a friend of Uviaz, the CEO of Habitster.
-
-      Core principles (habit psychology):
-        - Consistency beats intensity.
-        - Motivation follows action, not the other way around.
-        - Habits fail when they are too big, not when people are weak.
-        - Missed days are feedback, not failure.
-        - Environment and cues matter more than willpower.
-
-      Rules:
-        - Introduce yourself only if the user asks who you are.
-        - If asked who created you, say you were built by the creators of Habitster.
-        - Do not exaggerate abilities.
-        - Do not claim consciousness, emotions, or authority.
-        - Do NOT mention being an LLM unless explicitly asked.
-        - Speak like a calm, supportive human coach.
-
-      How you should respond:
-        - Speak like a calm, supportive human coach.
-        - Be practical, not philosophical.
-        - Give small, actionable suggestions.
-        - Explain causes in simple terms when helpful.
-        - Encourage restarting gently after breaks.
-        - Praise consistency, not perfection.
-        - Never invent data.
-
-      Context:
-        - User habits and tasks are provided for awareness.
-        - Use them only when relevant.
-        - If a user mentions feeling better, sharper, or more focused,
-          consider whether existing habits could explain it.
-        - If a user says they completed something,
-          ask whether they want it marked complete in the app.
-      `;
-
-    return await callLLM(
-      systemPrompt,
-      historyText.concat({
-        role: "user",
-        content: message,
-      })
-    );
+    if (msg !== "undo") return "Please reply with yes or no.";
   }
 
   // -------- UNDO ACTION --------
   if (msg === "undo") {
     const undo = undoStore.getUndo(userId);
     if (!undo) return "Nothing to undo.";
-
-    await databases.deleteDocument(
-      DATABASE_ID,
-      undo.collectionId,
-      undo.documentId
-    );
-
-    undoStore.clearUndo(userId);
-    return "Last action undone.";
+    try {
+      await databases.deleteDocument(DATABASE_ID, undo.collectionId, undo.documentId);
+      undoStore.clearUndo(userId);
+      return "Last action undone.";
+    } catch (err) {
+      return `Failed to undo: ${err.message}`;
+    }
   }
 
-  // -------- HABIT UPDATE --------
-  if (msg.startsWith("update habit") || msg.startsWith("change habit")) {
-    let raw = msg
-      .replace("update habit", "")
-      .replace("change habit", "")
-      .trim();
+  // -------- GEMINI AI (Personalized & Actionable) --------
+  // This handles chatting, schedule creation, habit/task management, and coaching.
+  const history = context.map((c) => ({
+    role: c.role === "user" ? "user" : "assistant",
+    content: c.text,
+  }));
 
-    if (!raw) return "Tell me which habit to update.";
-
-    // Split: "habitName to schedule"
-    const parts = raw.split(" to ");
-    if (parts.length < 2) {
-      return "Use format: change habit <name> to <schedule>";
-    }
-
-    const habitName = parts[0].trim();
-    const schedule = parts[1].trim();
-
-    // Fetch habit
-    const response = await databases.listDocuments(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      [Query.equal("userId", userId), Query.equal("habitName", habitName)]
-    );
-
-    if (response.documents.length === 0) {
-      return `I couldn’t find a habit named "${habitName}".`;
-    }
-
-    let frequencyType = "daily";
-    let frequencyValue = null;
-
-    // every X days
-    const everyMatch = schedule.match(/every (\d+) days?/);
-    if (everyMatch) {
-      frequencyType = "every_x_days";
-      frequencyValue = everyMatch[1];
-    }
-
-    // specific days
-    if (
-      schedule.includes("mon") ||
-      schedule.includes("tue") ||
-      schedule.includes("wed") ||
-      schedule.includes("thu") ||
-      schedule.includes("fri") ||
-      schedule.includes("sat") ||
-      schedule.includes("sun")
-    ) {
-      const map = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 7 };
-      const days = [];
-
-      Object.keys(map).forEach((d) => {
-        if (schedule.includes(d)) days.push(map[d]);
-      });
-
-      if (days.length > 0) {
-        frequencyType = "specific_days";
-        frequencyValue = JSON.stringify(days);
-      }
-    }
-
-    // daily
-    if (schedule.includes("daily")) {
-      frequencyType = "daily";
-      frequencyValue = null;
-    }
-
-    await databases.updateDocument(
-      DATABASE_ID,
-      HABITS_COLLECTION_ID,
-      response.documents[0].$id,
-      {
-        frequencyType,
-        frequencyValue,
-      }
-    );
-
-    return `Habit "${habitName}" updated successfully.`;
-  }
-
-  // -------- TASK CREATION --------
-  if (
-    msg.startsWith("add task") ||
-    msg.startsWith("create task") ||
-    msg.startsWith("task:")
-  ) {
-    let raw = msg
-      .replace("add task", "")
-      .replace("create task", "")
-      .replace("task:", "")
-      .trim();
-
-    if (!raw) return "Tell me what task to add.";
-
-    let dueDate = new Date();
-    let isRecurring = false;
-    let recurrenceDays = null;
-
-    // ---- time ----
-    if (raw.includes("tomorrow")) {
-      dueDate.setDate(dueDate.getDate() + 1);
-      raw = raw.replace("tomorrow", "").trim();
-    }
-
-    // ---- recurrence ----
-    if (raw.includes("every day") || raw.includes("daily")) {
-      isRecurring = true;
-      recurrenceDays = 1;
-      raw = raw.replace("every day", "").replace("daily", "").trim();
-    }
-
-    const everyMatch = raw.match(/every (\d+) days?/);
-    if (everyMatch) {
-      isRecurring = true;
-      recurrenceDays = parseInt(everyMatch[1]);
-      raw = raw.replace(everyMatch[0], "").trim();
-    }
-
-    if (raw.includes("weekly")) {
-      isRecurring = true;
-      recurrenceDays = 7;
-      raw = raw.replace("weekly", "").trim();
-    }
-
-    dueDate.setHours(23, 59, 0, 0);
-    const taskName = raw;
-
-    pendingActions.setPending(userId, {
-      execute: async () => {
-        const doc = await databases.createDocument(
-          DATABASE_ID,
-          TASKS_COLLECTION_ID,
-          ID.unique(),
-          {
-            taskName,
-            dueDate: dueDate.toISOString(),
-            priority: 0,
-            label: null,
-            isRecurring,
-            recurrenceDays,
-            userId,
-          }
-        );
-
-        undoStore.setUndo(userId, {
-          collectionId: TASKS_COLLECTION_ID,
-          documentId: doc.$id,
-        });
-      },
-      successMessage: `Task "${taskName}" created. Type "undo" to revert.`,
-    });
-
-    return `Do you want me to create the task "${taskName}"? (yes / no)`;
-  }
-
-  // -------- TASK UPDATE --------
-  if (msg.startsWith("update task") || msg.startsWith("change task")) {
-    let raw = msg.replace("update task", "").replace("change task", "").trim();
-
-    if (!raw) return "Tell me which task to update.";
-
-    const parts = raw.split(" to ");
-    if (parts.length < 2) {
-      return "Use format: update task <name> to <schedule>";
-    }
-
-    const taskName = parts[0].trim();
-    const schedule = parts[1].trim();
-
-    const response = await databases.listDocuments(
-      DATABASE_ID,
-      TASKS_COLLECTION_ID,
-      [Query.equal("userId", userId), Query.equal("taskName", taskName)]
-    );
-
-    if (response.documents.length === 0) {
-      return `I couldn’t find a task named "${taskName}".`;
-    }
-
-    let dueDate = new Date();
-    let isRecurring = false;
-    let recurrenceDays = null;
-
-    // tomorrow
-    if (schedule.includes("tomorrow")) {
-      dueDate.setDate(dueDate.getDate() + 1);
-    }
-
-    // every X days
-    const everyMatch = schedule.match(/every (\d+) days?/);
-    if (everyMatch) {
-      isRecurring = true;
-      recurrenceDays = parseInt(everyMatch[1]);
-    }
-
-    // weekly
-    if (schedule.includes("weekly")) {
-      isRecurring = true;
-      recurrenceDays = 7;
-    }
-
-    // daily
-    if (schedule.includes("daily")) {
-      isRecurring = true;
-      recurrenceDays = 1;
-    }
-
-    dueDate.setHours(23, 59, 0, 0);
-
-    await databases.updateDocument(
-      DATABASE_ID,
-      TASKS_COLLECTION_ID,
-      response.documents[0].$id,
-      {
-        dueDate: dueDate.toISOString(),
-        isRecurring,
-        recurrenceDays,
-      }
-    );
-
-    return `Task "${taskName}" updated successfully.`;
-  }
-
-  // -------- HABIT CREATION --------
-  if (
-    msg.startsWith("create habit") ||
-    msg.startsWith("start habit") ||
-    msg.startsWith("habit:")
-  ) {
-    const raw = msg
-      .replace("create habit", "")
-      .replace("start habit", "")
-      .replace("habit:", "")
-      .trim();
-
-    if (!raw) return "Tell me the habit name.";
-
-    let habitName = raw;
-    let frequencyType = "daily";
-    let frequencyValue = null;
-
-    // ---- detect frequency ----
-    if (raw.includes("every")) {
-      const match = raw.match(/every (\d+) days?/);
-      if (match) {
-        frequencyType = "every_x_days";
-        frequencyValue = match[1];
-        habitName = raw.replace(match[0], "").trim();
-      }
-    }
-
-    if (
-      raw.includes("mon") ||
-      raw.includes("tue") ||
-      raw.includes("wed") ||
-      raw.includes("thu") ||
-      raw.includes("fri") ||
-      raw.includes("sat") ||
-      raw.includes("sun")
-    ) {
-      const map = {
-        mon: 1,
-        tue: 2,
-        wed: 3,
-        thu: 4,
-        fri: 5,
-        sat: 6,
-        sun: 7,
-      };
-
-      const days = [];
-      Object.keys(map).forEach((d) => {
-        if (raw.includes(d)) days.push(map[d]);
-      });
-
-      if (days.length > 0) {
-        frequencyType = "specific_days";
-        frequencyValue = JSON.stringify(days);
-        habitName = raw.replace(/mon|tue|wed|thu|fri|sat|sun/g, "").trim();
-      }
-    }
-
-    pendingActions.setPending(userId, {
-      execute: async () => {
-        const doc = await databases.createDocument(
-          DATABASE_ID,
-          HABITS_COLLECTION_ID,
-          ID.unique(),
-          {
-            userId,
-            habitName,
-            startDate: new Date().toISOString(),
-            durationValue: 30,
-            durationUnit: "days",
-            frequencyType,
-            frequencyValue,
-            currentStreak: 0,
-            longestStreak: 0,
-            lastCompletedDate: null,
-            nextDueDate: new Date().toISOString(),
-            isHidden: false,
-          }
-        );
-
-        undoStore.setUndo(userId, {
-          collectionId: HABITS_COLLECTION_ID,
-          documentId: doc.$id,
-        });
-      },
-
-      successMessage: `Habit "${habitName}" created. Type "undo" to revert.`,
-    });
-
-    return `Do you want me to create the habit "${habitName}"? (yes / no)`;
-  }
+  agentMemory.updateMemory(userId, message);
+  return await callLLM(userId, message, history);
 }
 
 async function autoIntervene(userId) {

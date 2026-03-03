@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../services/api_service.dart';
+import '../../../widgets/habitster_loading_widget.dart';
 
 class CreateTaskScreen extends StatefulWidget {
   const CreateTaskScreen({super.key});
@@ -70,7 +71,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 400),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(230), // More opaque white
+            color: Theme.of(context).cardColor.withAlpha(240), // Use theme card color
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -182,7 +183,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   Widget _buildTaskNameField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -242,7 +243,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   Widget _buildNoteField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -286,7 +287,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(250),
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
@@ -308,8 +309,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.black
-                    .withAlpha(220), // Darker text for better readability
+                color: Theme.of(context).textTheme.bodyMedium?.color,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -383,7 +383,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(250),
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
@@ -401,7 +401,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black.withAlpha(220),
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -469,7 +469,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(250),
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
@@ -563,7 +563,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: HabitsterLoadingWidget(fontSize: 24)),
     );
 
     try {

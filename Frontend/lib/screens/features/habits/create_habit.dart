@@ -28,6 +28,10 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
   DateTime _startDate = DateTime.now();
   String _selectedDurationUnit = 'days'; // Default
   String _selectedFrequencyType = 'daily'; // Default
+  
+  // Gamification properties
+  String _selectedDifficulty = 'Medium';
+  String _selectedCategory = 'Productivity';
 
   @override
   void dispose() {
@@ -95,6 +99,8 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
       'frequencyType': _selectedFrequencyType,
       // Only include frequencyValue if relevant type is selected
       'frequencyValue': frequencyValueToSend,
+      'difficulty': _selectedDifficulty,
+      'category': _selectedCategory,
     };
 
     try {
@@ -286,6 +292,29 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                       ),
                   ],
                 ),
+
+              const SizedBox(height: 16),
+              
+              // Gamification: Difficulty
+              DropdownButtonFormField<String>(
+                initialValue: _selectedDifficulty,
+                items: ['Small', 'Medium', 'Hard']
+                    .map((diff) => DropdownMenuItem(value: diff, child: Text(diff)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedDifficulty = value!),
+                decoration: const InputDecoration(labelText: 'Difficulty (XP Reward)'),
+              ),
+              const SizedBox(height: 16),
+
+              // Gamification: Skill Category
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                items: ['Productivity', 'Health', 'Mindfulness', 'Learning']
+                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedCategory = value!),
+                decoration: const InputDecoration(labelText: 'Skill Category'),
+              ),
 
               const SizedBox(height: 32),
               Center(

@@ -4,6 +4,9 @@ import '../../../services/api_service.dart'; // Import ApiService
 import 'package:table_calendar/table_calendar.dart'; // <-- Add table_calendar import
 import 'dart:convert';
 import 'habit_completion.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../widgets/habitster_loading_widget.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   // Accept the habit data map
@@ -76,15 +79,29 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Habit "${updatedHabit['habitName']}" completed! Streak: ${updatedHabit['currentStreak']}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Pop screen and return true to signal success to HabitsScreen
-        Navigator.pop(context, updatedHabit);
+        final gamification = updatedHabit['gamification'];
+        if (gamification != null) {
+          // Show gamification dialog first, then pop
+          await _showGamificationRewardDialog(
+            gamification['xpGained'] ?? 0,
+            gamification['newLevel'],
+            gamification['variableRewardMsg'] as String?,
+            updatedHabit['currentStreak'] ?? 0,
+            updatedHabit['habitName'] ?? 'Habit',
+          );
+          if (mounted) {
+            Navigator.pop(context, updatedHabit);
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Habit "${updatedHabit['habitName']}" completed! Streak: ${updatedHabit['currentStreak']}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, updatedHabit);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -99,6 +116,81 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         }); // Turn off loading
       }
     }
+  }
+
+  // --- GAMIFICATION REWARD DIALOG ---
+  Future<void> _showGamificationRewardDialog(int xpGained, int? newLevel, String? rewardMsg, int streak, String habitName) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.stars_rounded, color: Color(0xFFFF0066), size: 64)
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .scaleXY(begin: 1.0, end: 1.2, duration: 600.ms, curve: Curves.easeInOut),
+                const SizedBox(height: 16),
+                Text(
+                  '+$xpGained XP!',
+                  style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFFFF0066)),
+                ).animate().fade().slideY(begin: 0.5, curve: Curves.easeOutBack),
+                const SizedBox(height: 8),
+                Text(
+                  'You crushed "$habitName".',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.local_fire_department_rounded, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text('$streak Day Streak', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                if (rewardMsg != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withAlpha(50),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.card_giftcard, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(rewardMsg, style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                  ).animate().scale(delay: 400.ms, duration: 400.ms, curve: Curves.elasticOut),
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF0066),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  child: const Text('Awesome!', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // Inside _HabitDetailScreenState class
@@ -164,7 +256,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               height: MediaQuery.of(context).size.height *
                   0.6, // Adjust height as needed
               child: _isLoadingHistoryFull
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: HabitsterLoadingWidget(fontSize: 24))
                   : TableCalendar(
                       firstDay:
                           DateTime.utc(2020, 1, 1), // Adjust range as needed
@@ -190,21 +282,24 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       calendarFormat: CalendarFormat.month,
                       eventLoader:
                           _getEventsForDay, // Function to mark completed dates
-                      calendarStyle: const CalendarStyle(
+                      calendarStyle: CalendarStyle(
                         // Customize appearance if desired
                         todayDecoration: BoxDecoration(
-                          color: Colors.blueAccent,
+                          color: Theme.of(context).colorScheme.primary.withAlpha(50),
                           shape: BoxShape.circle,
                         ),
                         selectedDecoration: BoxDecoration(
-                          color: Colors.orangeAccent,
+                          color: Theme.of(context).colorScheme.secondary,
                           shape: BoxShape.circle,
                         ),
                         markerDecoration: BoxDecoration(
                           // Decoration for event markers
-                          color: Colors.green,
+                          color: Colors.greenAccent,
                           shape: BoxShape.circle,
                         ),
+                        defaultTextStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                        weekendTextStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withAlpha(180)),
+                        outsideTextStyle: TextStyle(color: Theme.of(context).disabledColor),
                       ),
                       headerStyle: const HeaderStyle(
                         formatButtonVisible: false, // Hide format button
@@ -682,7 +777,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             const SizedBox(height: 5),
             Text('Time Remaining: $timeRemaining',
-                style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                )),
             const SizedBox(height: 20),
 
             // --- Subtasks Section ---
@@ -784,7 +882,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: CircularProgressIndicator(),
+          child: HabitsterLoadingWidget(fontSize: 20),
         ),
       );
     }

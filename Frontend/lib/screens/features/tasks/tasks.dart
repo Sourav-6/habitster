@@ -1,8 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'create_task.dart';
 import '../../../services/api_service.dart';
+import '../../../widgets/habitster_loading_widget.dart';
 
 class TasksScreen extends StatefulWidget {
   // Changed to StatefulWidget
@@ -20,7 +23,8 @@ class _TasksScreenState extends State<TasksScreen>
   bool _isButtonExpanded = false;
 
   // --- NEW State Variables ---
-  List<dynamic> _tasks = []; // List to hold tasks
+  List<dynamic> _tasks = []; // List to hold active tasks
+  List<dynamic> _completedTasks = []; // Persisted completed tasks
   bool _isLoading = true; // Loading indicator state
   String? _error; // Error message state
   // --- End NEW State Variables ---
@@ -50,17 +54,17 @@ class _TasksScreenState extends State<TasksScreen>
       _error = null;
     });
     try {
-      final tasks = await _apiService.getTasks();
+      // Fetch ALL tasks, split active/completed client-side (avoids Appwrite index requirement)
+      final allTasks = await _apiService.getTasks();
       if (mounted) {
-        // Check if widget is still mounted
         setState(() {
-          _tasks = tasks;
+          _tasks = allTasks.where((t) => t['isCompleted'] != true).toList();
+          _completedTasks = allTasks.where((t) => t['isCompleted'] == true).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        // Check if widget is still mounted
         setState(() {
           _error = e.toString();
           _isLoading = false;
@@ -93,7 +97,8 @@ class _TasksScreenState extends State<TasksScreen>
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black.withAlpha(204),
+                      color: Theme.of(context).textTheme.headlineMedium?.color ??
+                          Colors.black.withAlpha(220),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -118,12 +123,13 @@ class _TasksScreenState extends State<TasksScreen>
 
   Widget _buildBodyContent() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: HabitsterLoadingWidget(fontSize: 32));
     }
     if (_error != null) {
       return Center(child: Text('Error loading tasks: $_error'));
     }
-    if (_tasks.isEmpty) {
+    // Only show empty state when there's truly nothing — no active AND no completed
+    if (_tasks.isEmpty && _completedTasks.isEmpty) {
       return const Center(
         child: Text(
           'No tasks yet. Add one!',
@@ -131,7 +137,7 @@ class _TasksScreenState extends State<TasksScreen>
         ),
       );
     }
-    // If loaded, no error, and tasks exist, build the list
+    // Always build the list view (it handles empty active tasks with a "caught up" message)
     return _buildTasksList();
   }
   // --- End NEW ---
@@ -140,77 +146,230 @@ class _TasksScreenState extends State<TasksScreen>
   Widget _buildTasksList() {
     final List<dynamic> todayTasks = [];
     final List<dynamic> overdueTasks = [];
+    final List<dynamic> upcomingTasks = [];
     final now = DateTime.now();
-    // Create a DateTime object representing today at midnight for comparison
     final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
 
-    // Filter tasks into the two lists
     for (final task in _tasks) {
       if (task['dueDate'] != null) {
         try {
           final dueDate = DateTime.parse(task['dueDate']).toLocal();
-          // Create a DateTime object for the due date at midnight
-          final dueDateStart =
-              DateTime(dueDate.year, dueDate.month, dueDate.day);
+          final dueDateStart = DateTime(dueDate.year, dueDate.month, dueDate.day);
 
           if (dueDateStart.isAtSameMomentAs(todayStart)) {
             todayTasks.add(task);
           } else if (dueDateStart.isBefore(todayStart)) {
-            overdueTasks.add(task);
+            overdueTasks.add(task); // Past due date
+          } else {
+            upcomingTasks.add(task); // Future tasks
           }
-          // Tasks due in the future are ignored for now
         } catch (e) {
-          // Optionally add tasks with invalid dates to a separate list or handle them
+          // ignore parse errors
         }
+      } else {
+        // Tasks with no due date go under today
+        todayTasks.add(task);
       }
     }
 
     // Build the UI with sections
+    // Build the UI with sections
     return ListView(
-      // Use a regular ListView to hold Columns/Sections
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 80),
       children: [
-        // --- Overdue Section ---
+        // --- Overdue Section (ALWAYS at top when it has items) ---
         if (overdueTasks.isNotEmpty) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-            child: Text(
-              'Overdue',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade700,
-              ),
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4081), size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Overdue',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFFF4081),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF4081).withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${overdueTasks.length}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFFF4081),
+                    ),
+                  ),
+                ),
+              ],
+            ).animate().fade().slideX(begin: -0.1),
           ),
-          ...overdueTasks
-              .map((task) => _buildTaskTile(task)), // Use helper for ListTile
-          const SizedBox(height: 15), // Spacer between sections
+          ...overdueTasks.asMap().entries.map((entry) {
+            return AnimatedTaskCard(
+              task: entry.value,
+              index: entry.key,
+              apiService: _apiService,
+              onCompleted: (taskId) {
+                if (mounted) {
+                  setState(() {
+                    final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
+                    if (t != null) _completedTasks.add(t);
+                    _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+            );
+          }),
+          const SizedBox(height: 20),
         ],
 
         // --- Today Section ---
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-          child: Text(
-            'Today',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade700,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          child: Row(
+            children: [
+              const Icon(Icons.today_rounded, color: Color(0xFF4A00E0), size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Today',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF4A00E0),
+                ),
+              ),
+            ],
+          ).animate().fade().slideX(begin: -0.1),
         ),
         if (todayTasks.isNotEmpty)
-          ...todayTasks
-              .map((task) => _buildTaskTile(task)) // Use helper for ListTile
+          ...todayTasks.asMap().entries.map((entry) {
+            return AnimatedTaskCard(
+              task: entry.value,
+              index: entry.key + overdueTasks.length,
+              apiService: _apiService,
+              onCompleted: (taskId) {
+                if (mounted) {
+                  setState(() {
+                    final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
+                    if (t != null) _completedTasks.add(t);
+                    _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+            );
+          })
         else
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
-            child: Text('No tasks for today.',
-                style: TextStyle(color: Colors.grey)),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8),
+            child: Text(
+              'No tasks due today.',
+              style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+            ),
           ),
+        const SizedBox(height: 20),
+
+        // --- Upcoming Section ---
+        if (upcomingTasks.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+            child: Row(
+              children: [
+                const Icon(Icons.event_rounded, color: Color(0xFF00BFA5), size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Upcoming',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF00BFA5),
+                  ),
+                ),
+              ],
+            ).animate().fade().slideX(begin: -0.1),
+          ),
+          ...upcomingTasks.asMap().entries.map((entry) {
+            return AnimatedTaskCard(
+              task: entry.value,
+              index: entry.key + overdueTasks.length + todayTasks.length,
+              apiService: _apiService,
+              onCompleted: (taskId) {
+                if (mounted) {
+                  setState(() {
+                    final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
+                    if (t != null) _completedTasks.add(t);
+                    _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+            );
+          }),
+          const SizedBox(height: 20),
+        ],
+
+        // --- Completed Section ---
+        if (_completedTasks.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_rounded, color: Colors.green, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Completed',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+              ],
+            ).animate().fade().slideX(begin: -0.1),
+          ),
+          ..._completedTasks.map((task) {
+            final String title = task['taskName'] ?? task['title'] ?? 'Untitled';
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withAlpha(220),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: Colors.green.withAlpha(100), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.green.shade400, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey.shade600,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ).animate().fade(duration: 300.ms).slideY(begin: 0.1);
+          }),
+          const SizedBox(height: 20),
+        ],
       ],
     );
   }
+
 
   // lib/screens/features/tasks/tasks.dart
 
@@ -331,14 +490,19 @@ class _TasksScreenState extends State<TasksScreen>
       children: [
         // Background gradient
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF9F9FF), // Very light purple/white
-                Color(0xFFF0F8FF), // Very light blue
-              ],
+              colors: Theme.of(context).brightness == Brightness.dark
+                  ? [
+                      const Color(0xFF121212), // Deep dark
+                      const Color(0xFF1E1E2C), // Dark blue/purple
+                    ]
+                  : [
+                      const Color(0xFFF9F9FF), // Very light purple/white
+                      const Color(0xFFF0F8FF), // Very light blue
+                    ],
             ),
           ),
         ),
@@ -443,8 +607,10 @@ class _TasksScreenState extends State<TasksScreen>
               sigmaX: 60,
               sigmaY: 60), // Increased blur for more aesthetic effect
           child: Container(
-            color: Colors.white.withAlpha(20), // Very subtle white overlay
-          ),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black.withAlpha(100)
+                : Colors.white.withAlpha(80),
+          ), // subtle white overlay
         ),
       ],
     );
@@ -542,4 +708,172 @@ class _TasksScreenState extends State<TasksScreen>
     }
   }
   // --- End UPDATED ---
+}
+
+// --- NEW: Animated Task Card Component ---
+class AnimatedTaskCard extends StatefulWidget {
+  final dynamic task;
+  final int index;
+  final ApiService apiService;
+  final Function(String) onCompleted;
+
+  const AnimatedTaskCard({
+    super.key,
+    required this.task,
+    required this.index,
+    required this.apiService,
+    required this.onCompleted,
+  });
+
+  @override
+  State<AnimatedTaskCard> createState() => _AnimatedTaskCardState();
+}
+
+class _AnimatedTaskCardState extends State<AnimatedTaskCard> {
+  bool _isChecking = false;
+  bool _isCompleted = false;
+
+  Future<void> _handleComplete() async {
+    if (_isChecking || _isCompleted) return;
+
+    setState(() {
+      _isChecking = true;
+      _isCompleted = true; // Trigger animation immediately for snappy UX
+    });
+
+    final taskId = widget.task['\$id'];
+    final bool isRecurring = widget.task['isRecurring'] ?? false;
+    final int? recurrenceDays = widget.task['recurrenceDays'];
+    final dueDateRaw = widget.task['dueDate'];
+
+    try {
+      // 1. Play animation delay so user sees the reward
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (!mounted) return;
+
+      if (!isRecurring) {
+        await widget.apiService.deleteTask(taskId);
+        widget.onCompleted(taskId); // Notify parent after success
+      } else if (recurrenceDays != null) {
+        final currentDueDate = dueDateRaw != null ? DateTime.parse(dueDateRaw).toLocal() : DateTime.now();
+        final nextDueDate = currentDueDate.add(Duration(days: recurrenceDays));
+        await widget.apiService.updateTask(taskId, {
+          'dueDate': nextDueDate.toUtc().toIso8601String(),
+        });
+        widget.onCompleted(taskId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isChecking = false;
+          _isCompleted = false; // rollback visually
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!mounted) return const SizedBox.shrink();
+    
+    final bool isRecurring = widget.task['isRecurring'] ?? false;
+    final String title = widget.task['taskName'] ?? widget.task['title'] ?? 'Untitled';
+    final String desc = widget.task['note'] ?? widget.task['description'] ?? '';
+
+    return AnimatedOpacity(
+      opacity: _isCompleted ? 0.0 : 1.0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutBack,
+        transform: Matrix4.translationValues(0, _isCompleted ? 20 : 0, 0),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _isCompleted ? const Color(0xFFE8F5E9) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _isCompleted ? Colors.green.withAlpha(100) : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4A00E0).withAlpha(15),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _handleComplete,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _isCompleted ? Colors.green : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _isCompleted ? Colors.green : const Color(0xFF4A00E0).withAlpha(100),
+                    width: 2.5,
+                  ),
+                ),
+                child: _isCompleted 
+                  ? const Icon(Icons.check, size: 18, color: Colors.white).animate().scale(curve: Curves.easeOutBack)
+                  : null,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _isCompleted ? Colors.green.shade700 : Colors.black87,
+                      decoration: _isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  if (desc.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        desc,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          decoration: _isCompleted ? TextDecoration.lineThrough : null,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (isRecurring)
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A00E0).withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.repeat, size: 16, color: Color(0xFF4A00E0)),
+              ),
+          ],
+        ),
+      ).animate(target: _isCompleted ? 1 : 0)
+       .shimmer(duration: 400.ms, color: Colors.green.withAlpha(100))
+    ).animate().fade(delay: (widget.index * 100).ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack);
+  }
 }

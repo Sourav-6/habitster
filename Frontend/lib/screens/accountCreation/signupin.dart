@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'register.dart';
 import 'signin.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SignUpIn extends StatelessWidget {
   const SignUpIn({super.key});
@@ -9,7 +10,6 @@ class SignUpIn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -27,18 +27,23 @@ class SignUpIn extends StatelessWidget {
                     fit: BoxFit.contain,
                   ),
                 ),
-              ),
+              ).animate()
+                .fade(duration: 800.ms)
+                .scaleXY(begin: 0.8, end: 1.0, duration: 800.ms, curve: Curves.easeOutBack)
+                .shimmer(delay: 1000.ms, duration: 1500.ms), // Add a nice shine effect after it appears
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 "Let's transform life,\none habit at a time.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black54,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(180),
                   height: 1.5,
                   fontStyle: FontStyle.italic,
                 ),
-              ),
+              ).animate()
+                .fade(delay: 500.ms, duration: 600.ms)
+                .slideY(begin: 0.3, end: 0.0, curve: Curves.easeOut),
               const SizedBox(height: 16),
               const Spacer(flex: 6), // Increased from 4 to 6
               Row(
@@ -47,17 +52,17 @@ class SignUpIn extends StatelessWidget {
                   Image.asset(
                     'assets/images/Woman Climbing Light Skin Tone.png',
                     height: 64,
-                  ),
+                  ).animate().fade(delay: 600.ms).slideX(begin: -0.5),
                   const SizedBox(width: 24),
                   Image.asset(
                     'assets/images/Person Bouncing Ball Light Skin Tone.png',
                     height: 64,
-                  ),
+                  ).animate().fade(delay: 800.ms).scaleXY(begin: 0.8),
                   const SizedBox(width: 24),
                   Image.asset(
                     'assets/images/Man In Lotus Position Dark Skin Tone.png',
                     height: 64,
-                  ),
+                  ).animate().fade(delay: 1000.ms).slideX(begin: 0.5),
                 ],
               ),
               const SizedBox(height: 16),
@@ -99,17 +104,17 @@ class SignUpIn extends StatelessWidget {
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black12),
+                    side: BorderSide(color: Theme.of(context).dividerColor),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Sign In',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.labelLarge?.color,
                     ),
                   ),
                 ),
@@ -120,26 +125,21 @@ class SignUpIn extends StatelessWidget {
               SizedBox(
                   width: double.infinity,
                   height: 56,
-                  child: ElevatedButton(
+                  child: OutlinedButton.icon(
                     onPressed: () async {
-                      // 1️⃣ Go to SignIn screen FIRST
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignIn()),
-                      );
-
-                      // 2️⃣ Small delay to ensure SignIn is mounted
-                      await Future.delayed(const Duration(milliseconds: 300));
-
-                      // 3️⃣ Launch Google OAuth
-                      final url = Uri.parse("http://10.0.2.2:3000/auth/google");
-
+                      final url = Uri.parse("http://localhost:3000/auth/google");
                       await launchUrl(
                         url,
                         mode: LaunchMode.externalApplication,
                       );
                     },
-                    child: const Text("Continue with Google"),
+                    icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.login)),
+                    label: Text("Continue with Google",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.87))),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
+                    ),
                   )),
             ],
           ),

@@ -23,6 +23,7 @@ client
   .setKey(process.env.APPWRITE_API_KEY); // Your API Key from .env
 // NEW: Create an instance of the Users API
 const account = new Appwrite.Account(client);
+const users = new Appwrite.Users(client);
 const { nanoid } = require("nanoid");
 
 const databases = new Appwrite.Databases(client);
@@ -97,12 +98,77 @@ passport.use(
       callbackURL: "http://localhost:3000/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
-      const user = {
-        googleId: profile.id,
-        email: profile.emails[0].value,
-        name: profile.displayName,
-      };
-      done(null, user);
+      try {
+        const email = profile.emails[0].value;
+        const name = profile.displayName;
+        let userId;
+
+        // 1. Check if user exists in Appwrite
+        try {
+          const userList = await users.list([Appwrite.Query.equal("email", email)]);
+          if (userList.total > 0) {
+            userId = userList.users[0].$id;
+            console.log("Found existing Google user in Appwrite:", userId);
+          } else {
+            // 2. Create new user if not found
+            const newUser = await users.create(
+              Appwrite.ID.unique(),
+              email,
+              undefined,
+              undefined, // Password not needed for OAuth
+              name
+            );
+            userId = newUser.$id;
+            console.log("Created new Google user in Appwrite:", userId);
+          }
+        } catch (authErr) {
+          console.error("Appwrite Auth error during Google login:", authErr);
+          return done(authErr);
+        }
+
+        // 3. Ensure User Profile exists
+        try {
+          await databases.getDocument(DATABASE_ID, USER_PROFILES_COLLECTION_ID, userId);
+        } catch (profileErr) {
+          if (profileErr.code === 404) {
+            console.log("Creating new profile for Google user:", userId);
+            try {
+              const todayStr = new Date().toISOString().split('T')[0];
+              await databases.createDocument(
+                DATABASE_ID,
+                USER_PROFILES_COLLECTION_ID,
+                userId,
+                {
+                  userId: userId,
+                  name: name,
+                  xp: 0,
+                  level: 1,
+                  streakFreezeTokens: 0,
+                  avatarEnergy: 100,
+                  lastHabitCompletionDate: todayStr,
+                  healthXp: 0,
+                  productivityXp: 0,
+                  mindfulnessXp: 0,
+                  learningXp: 0,
+                  equippedAvatar: "default_avatar"
+                }
+              );
+            } catch (createErr) {
+              console.error("Failed to create profile for Google user:", createErr);
+            }
+          }
+        }
+
+        const user = {
+          userId: userId,
+          email: email,
+          name: name,
+        };
+        done(null, user);
+      } catch (e) {
+        console.error("Google Strategy Error:", e);
+        done(e);
+      }
     }
   )
 );
@@ -113,6 +179,10 @@ const TASKS_COLLECTION_ID = "tasks-storage";
 const HABITS_COLLECTION_ID = "habits-storage";
 const SUBTASKS_COLLECTION_ID = "subtasks-storage";
 const HABIT_HISTORY_COLLECTION_ID = "habithistory";
+// GAMIFICATION
+const USER_PROFILES_COLLECTION_ID = "user_profiles_";
+const USER_BADGES_COLLECTION_ID = "user_badges";
+
 
 // --- Middleware ---
 app.use(express.json());
@@ -125,35 +195,60 @@ app.get("/", (req, res) => {
 // --- API Endpoints ---
 // We will update these next to use Appwrite
 app.post("/api/auth/register", async (req, res) => {
-  // Added 'async'
   try {
-    const { email, password } = req.body;
+    const { email, password, name } = req.body;
 
-    // 1. Create a unique ID for the new user
-    const userId = nanoid();
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
 
-    // 2. Call Appwrite to create the user
-    // Appwrite Users.create signature is (userId, email, password, name?)
+    // 1. Create user in Appwrite Auth (userId, email, phone, password, name)
     const newUser = await users.create(
-      userId,
+      Appwrite.ID.unique(), // Let Appwrite generate a proper unique ID
       email,
-      null, // name (optional)
-      password
+      undefined, // phone (not used)
+      password,
+      name || email.split('@')[0], // Use name or fallback to email prefix
     );
 
-    console.log("Successfully created user:", newUser);
+    console.log("Successfully created user:", newUser.$id);
 
-    // 3. Send a success response back to Flutter
+    // 2. Initialize the gamification profile using the userId as document ID
+    // This is CRITICAL: must match what getDocument(userId) looks up later
+    const todayStr = new Date().toISOString().split('T')[0];
+    await databases.createDocument(
+      DATABASE_ID,
+      USER_PROFILES_COLLECTION_ID,
+      newUser.$id,  // ← FIXED: Use userId as document ID, not a random ID
+      {
+        userId: newUser.$id,
+        xp: 0,
+        level: 1,
+        streakFreezeTokens: 0,
+        avatarEnergy: 100,
+        lastHabitCompletionDate: todayStr, // Prevent immediate energy drain
+        healthXp: 0,
+        productivityXp: 0,
+        mindfulnessXp: 0,
+        learningXp: 0,
+        equippedAvatar: "default_avatar"
+      }
+    );
+    console.log("Successfully initialized user profile for:", newUser.$id);
+
     res.status(201).json({
       message: "User registered successfully!",
       userId: newUser.$id,
     });
   } catch (error) {
-    console.error("Error creating user:", error); // Keep logging the full error to the console
-    res.status(500).json({
-      message: "Failed to register user",
-      // NEW: Send back the full error details as a string
-      error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    console.error("Error creating user/profile:", error);
+    // Provide user-friendly error messages
+    let message = "Failed to register user";
+    if (error.code === 409) message = "An account with this email already exists.";
+    else if (error.code === 400) message = "Invalid email or password format.";
+    res.status(error.code === 409 ? 409 : 500).json({
+      message,
+      error: error.message,
     });
   }
 });
@@ -242,8 +337,8 @@ app.get(
   (req, res) => {
     const token = jwt.sign(
       {
+        userId: req.user.userId,
         email: req.user.email,
-        googleId: req.user.googleId,
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
@@ -330,67 +425,62 @@ app.post("/api/tasks", authMiddleware, async (req, res) => {
 // NEW: Get Tasks Endpoint
 app.get("/api/tasks", authMiddleware, async (req, res) => {
   try {
-    // --- TEMPORARY USER ID FOR TESTING ---
-    // Replace this with the SAME user ID you used for creating tasks
     const userId = req.userId;
-    // --- END TEMPORARY ---
 
-    // 1. Fetch documents from Appwrite
+    // Return ALL tasks for the user — active/completed split is handled client-side
+    // (avoids needing an Appwrite index on isCompleted)
     const response = await databases.listDocuments(
       DATABASE_ID,
       TASKS_COLLECTION_ID,
-      [Appwrite.Query.equal("userId", userId)]
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.orderDesc("$createdAt"),
+      ]
     );
 
     console.log("Successfully fetched tasks for user:", userId);
-    // 3. Send the list of documents (tasks) back
     res.status(200).json(response.documents);
   } catch (error) {
     console.error("Error fetching tasks:", error);
     res.status(500).json({
       message: "Failed to fetch tasks",
-      error:
-        error.message ||
-        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      error: error.message || JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
   }
 });
 
+
 app.delete("/api/tasks/:taskId", authMiddleware, async (req, res) => {
   try {
-    const { taskId } = req.params; // Get task ID from URL parameter
+    const { taskId } = req.params;
+    const userId = req.userId;
 
-    const userId = req.userId; // Get user ID from middleware
-
-    // --- IMPORTANT: Verify task ownership ---
+    // Verify task ownership
     const task = await databases.getDocument(
       DATABASE_ID,
       TASKS_COLLECTION_ID,
       taskId
     );
     if (task.userId !== userId) {
-      console.warn(
-        `User ${userId} attempted to delete task ${taskId} owned by ${task.userId}`
-      );
-      return res
-        .status(403)
-        .json({ message: "Forbidden: You do not own this task" });
+      return res.status(403).json({ message: "Forbidden: You do not own this task" });
     }
 
-    await databases.deleteDocument(DATABASE_ID, TASKS_COLLECTION_ID, taskId);
+    // Mark as completed instead of deleting (so it persists in the completed section)
+    await databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, taskId, {
+      isCompleted: true,
+    });
 
-    console.log("Successfully deleted task:", taskId);
-    res.status(204).send(); // 204 No Content is standard for successful delete
+    console.log("Task marked as completed:", taskId);
+    res.status(204).send();
   } catch (error) {
-    console.error("Error deleting task:", error);
+    console.error("Error completing task:", error);
     res.status(500).json({
-      message: "Failed to delete task",
-      error:
-        error.message ||
-        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      message: "Failed to complete task",
+      error: error.message || JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
   }
 });
+
 
 // NEW: Update Task Endpoint (for completing recurring tasks)
 app.put("/api/tasks/:taskId", authMiddleware, async (req, res) => {
@@ -456,6 +546,9 @@ app.post("/api/habits", authMiddleware, async (req, res) => {
       durationUnit, // e.g., "months"
       frequencyType, // e.g., "every_x_days"
       frequencyValue, // e.g., "2" or "[1,3,5]"
+      // GAMIFICATION
+      difficulty,
+      category
     } = req.body;
 
     // Basic Validation
@@ -493,6 +586,9 @@ app.post("/api/habits", authMiddleware, async (req, res) => {
         lastCompletedDate: null,
         nextDueDate: initialNextDueDate.toISOString(), // Set initial due date
         isHidden: false, // Default
+        // GAMIFICATION
+        difficulty: difficulty || "Medium",
+        category: category || "Productivity"
       }
     );
 
@@ -817,6 +913,83 @@ app.post("/api/habits/:habitId/complete", authMiddleware, async (req, res) => {
     const newStreak = (habit.currentStreak || 0) + 1;
     const newLongestStreak = Math.max(habit.longestStreak || 0, newStreak);
 
+    // --- GAMIFICATION: Update Profile ---
+    let profileToUpdate = null;
+    let newLevel = 1;
+    let xpGained = 0;
+    let variableRewardMsg = null;
+
+    try {
+      const profile = await databases.getDocument(
+        DATABASE_ID,
+        USER_PROFILES_COLLECTION_ID,
+        userId
+      );
+
+      // Calculate XP based on difficulty
+      const diff = (habit.difficulty || "Medium").toLowerCase();
+      if (diff === "hard") xpGained = 30;
+      else if (diff === "small") xpGained = 10;
+      else xpGained = 20;
+
+      let newXp = profile.xp + xpGained;
+      newLevel = profile.level;
+
+      // Level up formula: every 100 XP is a level
+      const xpNeeded = profile.level * 100;
+      if (newXp >= xpNeeded) {
+        newLevel += 1;
+      }
+
+      // Add to specific category
+      const category = (habit.category || "Productivity").toLowerCase();
+      let healthXp = profile.healthXp;
+      let productivityXp = profile.productivityXp;
+      let mindfulnessXp = profile.mindfulnessXp;
+      let learningXp = profile.learningXp;
+
+      if (category === "health") healthXp += xpGained;
+      else if (category === "mindfulness") mindfulnessXp += xpGained;
+      else if (category === "learning") learningXp += xpGained;
+      else productivityXp += xpGained; // default
+
+      // Apply Variable Rewards (10% chance)
+      let freezeTokens = profile.streakFreezeTokens;
+      // ⚡ Completing any habit restores +10 energy (Duolingo-style)
+      let newEnergy = Math.min(100, (profile.avatarEnergy ?? 100) + 10);
+      if (Math.random() < 0.1) {
+        if (Math.random() < 0.5) {
+          freezeTokens += 1;
+          variableRewardMsg = "Surprise! You found a Streak Freeze Token!";
+        } else {
+          newEnergy = Math.min(100, newEnergy + 10); // Extra +10 bonus
+          variableRewardMsg = "Avatar Energy boost! +10 Bonus Energy!";
+        }
+      }
+
+      // Mark today as last activity date (used for drain calculation)
+      const todayDate = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+
+      profileToUpdate = databases.updateDocument(
+        DATABASE_ID,
+        USER_PROFILES_COLLECTION_ID,
+        userId,
+        {
+          xp: newXp,
+          level: newLevel,
+          healthXp,
+          productivityXp,
+          mindfulnessXp,
+          learningXp,
+          streakFreezeTokens: freezeTokens,
+          avatarEnergy: newEnergy,
+          lastHabitCompletionDate: todayDate, // ← saves today's date to prevent drain tomorrow
+        }
+      );
+    } catch (e) {
+      console.log("No profile found to update or error:", e.message);
+    }
+
     // Create history entry (run in parallel with habit update)
     const historyPromise = databases.createDocument(
       DATABASE_ID,
@@ -844,16 +1017,22 @@ app.post("/api/habits/:habitId/complete", authMiddleware, async (req, res) => {
       }
     );
 
-    // Wait for both operations to complete
-    const [updatedHabit, historyEntry] = await Promise.all([
-      habitUpdatePromise,
-      historyPromise,
-    ]);
+    // Wait for all operations to complete
+    const promisesToWait = [habitUpdatePromise, historyPromise];
+    if (profileToUpdate) promisesToWait.push(profileToUpdate);
+
+    const results = await Promise.all(promisesToWait);
+    const updatedHabit = results[0];
+
+    // Inject gamification response
+    updatedHabit.gamification = {
+      xpGained,
+      newLevel,
+      variableRewardMsg
+    };
 
     console.log(
-      `Habit ${habitId} completed. Streak: ${newStreak}. Next due: ${nextDueDate.toISOString()}. History created: ${
-        historyEntry["$id"]
-      }`
+      `Habit ${habitId} completed. Streak: ${newStreak}. Next due: ${nextDueDate.toISOString()}.`
     );
     res.status(200).json(updatedHabit); // Send back the updated habit
   } catch (error) {
@@ -1049,7 +1228,225 @@ app.get("/api/habits/:habitId/history", authMiddleware, async (req, res) => {
     });
   }
 });
+
+// --- GAMIFICATION ENDPOINTS ---
+
+// Get User Profile (Gamification Stats)
+app.get("/api/profile", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    let profileData = null;
+    try {
+      profileData = await databases.getDocument(
+        DATABASE_ID,
+        USER_PROFILES_COLLECTION_ID,
+        userId
+      );
+    } catch (e) {
+      if (e.code === 404) {
+        // Auto-initialize profile for existing users
+        profileData = await databases.createDocument(
+          DATABASE_ID,
+          USER_PROFILES_COLLECTION_ID,
+          userId, // Use userId as the document ID
+          {
+            userId: userId,
+            xp: 0,
+            level: 1,
+            streakFreezeTokens: 0,
+            avatarEnergy: 100,
+            healthXp: 0,
+            productivityXp: 0,
+            mindfulnessXp: 0,
+            learningXp: 0,
+            equippedAvatar: "default_avatar"
+          }
+        );
+      } else {
+        throw e;
+      }
+    }
+
+    // Attempt to fetch the user's registered name
+    let userName = "Habitster User";
+    try {
+      const userRecord = await users.get(userId);
+      if (userRecord && userRecord.name) {
+        userName = userRecord.name;
+      } else if (userRecord && userRecord.email) {
+        // Fallback to email prefix if no name is set
+        userName = userRecord.email.split('@')[0];
+        // Capitalize the first letter for aesthetics
+        userName = userName.charAt(0).toUpperCase() + userName.slice(1);
+      }
+    } catch (err) {
+      console.log("Warning: Could not fetch user name for profile:", err.message);
+    }
+
+    // Compute the best active streak across all user habits
+    let bestStreak = 0;
+    try {
+      const habitsResponse = await databases.listDocuments(
+        DATABASE_ID,
+        HABITS_COLLECTION_ID,
+        [
+          Appwrite.Query.equal("userId", userId),
+          Appwrite.Query.limit(100),
+        ]
+      );
+      if (habitsResponse.documents.length > 0) {
+        bestStreak = Math.max(...habitsResponse.documents.map(h => h.currentStreak || 0));
+      }
+    } catch (err) {
+      console.log("Warning: Could not compute streak:", err.message);
+    }
+
+    // --- Duolingo-style ENERGY DRAIN ---
+    // Compute days since last habit completion and drain energy
+    const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const lastActivity = profileData.lastHabitCompletionDate || null;
+    let currentEnergy = profileData.avatarEnergy ?? 100;
+
+    if (lastActivity && lastActivity !== todayStr) {
+      // Count missed days
+      const lastDate = new Date(lastActivity);
+      const today = new Date(todayStr);
+      const diffMs = today - lastDate;
+      const missedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (missedDays > 0) {
+        const drainAmount = missedDays * 10; // -10 per missed day
+        currentEnergy = Math.max(0, currentEnergy - drainAmount);
+
+        // Save drained energy back so it doesn't drain again on next refresh
+        try {
+          await databases.updateDocument(
+            DATABASE_ID, USER_PROFILES_COLLECTION_ID, userId,
+            { avatarEnergy: currentEnergy }
+          );
+          profileData = { ...profileData, avatarEnergy: currentEnergy };
+          console.log(`Energy drained ${drainAmount} for user ${userId}. Missed ${missedDays} day(s). New energy: ${currentEnergy}`);
+        } catch (drainErr) {
+          console.log("Warning: Could not save drained energy:", drainErr.message);
+        }
+      }
+    } else if (!lastActivity) {
+      // Brand new user - set today as last activity so energy doesn't drain immediately
+      try {
+        await databases.updateDocument(
+          DATABASE_ID, USER_PROFILES_COLLECTION_ID, userId,
+          { lastHabitCompletionDate: todayStr }
+        );
+      } catch (e) { /* ignore */ }
+    }
+
+    res.status(200).json({
+      ...profileData,
+      avatarEnergy: currentEnergy,
+      name: userName,
+      bestStreak,
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    res.status(500).json({ message: "Failed to fetch profile", error: error.message });
+  }
+});
+
+// Get Leaderboard (Top 10 by XP)
+app.get("/api/leaderboard", authMiddleware, async (req, res) => {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      USER_PROFILES_COLLECTION_ID,
+      [
+        Appwrite.Query.orderDesc("xp"),
+        Appwrite.Query.limit(10)
+      ]
+    );
+
+    res.status(200).json(response.documents);
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    res.status(500).json({ message: "Failed to fetch leaderboard", error: error.message });
+  }
+});
+
+// Get Activity Stats (Last 30 days)
+app.get("/api/stats/activity", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
+
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      HABIT_HISTORY_COLLECTION_ID,
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.greaterThanEqual("completionDate", thirtyDaysAgo.toISOString()),
+        Appwrite.Query.orderDesc("completionDate"),
+        Appwrite.Query.limit(1000), // Assuming reasonable daily completions
+      ]
+    );
+
+    // Aggregate by date
+    const activityMap = {};
+    response.documents.forEach(doc => {
+      const dateKey = doc.completionDate.split('T')[0];
+      activityMap[dateKey] = (activityMap[dateKey] || 0) + 1;
+    });
+
+    res.status(200).json(activityMap);
+  } catch (error) {
+    console.error("Error fetching activity stats:", error);
+    res.status(500).json({ message: "Failed to fetch activity stats", error: error.message });
+  }
+});
+
+// Update Equipped Avatar
+app.put("/api/profile/avatar", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { avatarId } = req.body;
+
+    if (!avatarId) {
+      return res.status(400).json({ message: "Avatar ID is required" });
+    }
+
+    // 1. Fetch user profile
+    try {
+      await databases.getDocument(
+        DATABASE_ID,
+        USER_PROFILES_COLLECTION_ID,
+        userId
+      );
+    } catch (e) {
+      if (e.code === 404) {
+        return res.status(404).json({ message: "Profile not found" });
+      } else {
+        throw e;
+      }
+    }
+
+    // 2. Update equipped avatar
+    const updatedProfile = await databases.updateDocument(
+      DATABASE_ID,
+      USER_PROFILES_COLLECTION_ID,
+      userId,
+      {
+        equippedAvatar: avatarId
+      }
+    );
+
+    res.status(200).json(updatedProfile);
+  } catch (error) {
+    console.error("Error updating avatar:", error);
+    res.status(500).json({ message: "Failed to update avatar", error: error.message });
+  }
+});
+
 // --- Start Server ---
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });

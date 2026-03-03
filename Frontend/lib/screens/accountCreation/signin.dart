@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'register.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../features/dashboard/dashboard.dart'; // Import the dashboard
 import '../../services/api_service.dart'; // Import the API service
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../../services/api_service.dart'; // Import the API service
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -14,34 +14,18 @@ class SignIn extends StatefulWidget {
   State<SignIn> createState() => _SignInState();
 }
 
-class _SignInState extends State<SignIn> with WidgetsBindingObserver {
+class _SignInState extends State<SignIn> {
   final ApiService _apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkGoogleLogin();
-    }
-  }
-
-  // lib/screens/accountCreation/signin.dart
 
   void _loginUser() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -56,23 +40,21 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
     });
 
     try {
-      // FIX 1: We don't need the result, so we just await the function call.
       await _apiService.loginUser(
         _emailController.text,
         _passwordController.text,
       );
 
-      // FIX 2: Add the 'mounted' check before navigating.
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (context) => const DashboardScreen(),
           ),
+          (route) => false,
         );
       }
     } catch (e) {
-      // FIX 3: Add the 'mounted' check before showing the error snackbar.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -82,49 +64,31 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _checkGoogleLogin() async {
-    try {
-      final res = await http.get(
-        Uri.parse("http://10.0.2.2:3000/auth/google/success"),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (res.statusCode != 200) return;
-
-      final data = jsonDecode(res.body);
-
-      if (data['loggedIn'] == true) {
-        final token = data['token'];
-
-        await _apiService.saveToken(token);
-
-        if (!mounted) return;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+  Future<void> _launchGoogleAuth() async {
+    final url = Uri.parse("http://localhost:3000/auth/google");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch Google Auth')),
         );
       }
-    } catch (_) {
-      // silent fail is fine here
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
+      appBar: AppBar(),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -140,12 +104,11 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                         const Text('Welcome Back',
                             style: TextStyle(
                                 fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black)),
+                                fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        const Text('Let’s continue building habits',
+                        Text('Let’s continue building habits',
                             style:
-                                TextStyle(fontSize: 16, color: Colors.black54)),
+                                TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6))),
                         const SizedBox(height: 32),
                         TextField(
                           controller: _emailController,
@@ -189,11 +152,37 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                         Center(
                           child: TextButton(
                             onPressed: () {},
-                            child: const Text('Forget password ?',
+                            child: Text('Forget password ?',
                                 style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.black54,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                     decoration: TextDecoration.underline)),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('OR', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.4))),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: OutlinedButton.icon(
+                            onPressed: _launchGoogleAuth,
+                            icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.login)),
+                            label: Text('Continue with Google',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.87))),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                              side: BorderSide(color: Theme.of(context).dividerColor),
+                            ),
                           ),
                         ),
                         // ... (rest of your UI remains the same)

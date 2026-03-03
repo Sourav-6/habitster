@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../accountCreation/signupin.dart';
+import '../../widgets/habitster_loading_widget.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -347,7 +348,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           left: 0,
           right: 0,
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: HabitsterLoadingWidget(fontSize: 32))
               : Lottie(
                   composition: _cachedAnimations[index],
                   height: MediaQuery.of(context).size.height *
@@ -365,9 +366,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           right: 0,
           height: MediaQuery.of(context).size.height * 0.40,
           child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
               ),
@@ -380,10 +381,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     ? _pages[index]['title']
                     : Text(
                         _pages[index]['title'],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Theme.of(context).textTheme.headlineMedium?.color,
                           height: 1.1,
                         ),
                       ),
@@ -392,7 +393,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   _pages[index]['subtitle'],
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.black.withValues(),
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(200),
                     height: 1.3,
                   ),
                 ),
@@ -415,8 +416,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 width: (i + 1) == _currentPage ? 24 : 8,
                 decoration: BoxDecoration(
                   color: (i + 1) == _currentPage
-                      ? const Color(0xFF1A1A1A)
-                      : Colors.grey.withValues(),
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).disabledColor.withAlpha(100),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),

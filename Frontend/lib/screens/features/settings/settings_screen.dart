@@ -42,11 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.white, // Or your preferred app bar color
-        foregroundColor: Colors.black, // Adjust icon/text color if needed
-        elevation: 1,
       ),
-      backgroundColor: Colors.grey[100], // Slightly off-white background
       body: ListView(
         children: [
           const SizedBox(height: 20), // Top padding
@@ -62,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return CircleAvatar(
                     radius: 22,
                     backgroundImage: FileImage(File(path)),
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: Theme.of(context).disabledColor.withAlpha(50),
                   );
                 }
 

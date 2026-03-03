@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart'; // <-- NEW: Import our API service
+import '../../services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Register extends StatefulWidget {
   // <-- NEW: Converted to StatefulWidget
@@ -13,6 +14,7 @@ class _RegisterState extends State<Register> {
   // <-- NEW: State class
   // <-- NEW: Controllers, state variables, and service instance ---
   final ApiService _apiService = ApiService();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -20,6 +22,7 @@ class _RegisterState extends State<Register> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -29,61 +32,62 @@ class _RegisterState extends State<Register> {
 // lib/screens/accountCreation/register.dart
 
   void _registerUser() async {
-    // Basic validation
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() { _isLoading = true; });
 
     try {
-      final result = await _apiService.registerUser(
-        _emailController.text,
+      await _apiService.registerUser(
+        _emailController.text.trim(),
         _passwordController.text,
+        name: _nameController.text.trim(),
       );
 
-      // The fix: Check if the widget is still mounted before using the context.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Registration successful!'),
+          const SnackBar(
+            content: Text('Account created! Please sign in.'),
             backgroundColor: Colors.green,
           ),
         );
+        Navigator.pop(context); // Go back to sign in
       }
     } catch (e) {
-      // The fix: Also check here in the error case.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() { _isLoading = false; });
     }
   }
-  // --- End of new function ---
+
+  Future<void> _launchGoogleAuth() async {
+    final url = Uri.parse("http://localhost:3000/auth/google");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch Google Auth')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        // Added an AppBar to allow users to go back
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
+      appBar: AppBar(),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -101,16 +105,27 @@ class _RegisterState extends State<Register> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
                           ),
                         ),
                         // ... (other widgets remain the same)
                         const SizedBox(height: 32),
                         TextField(
-                          // <-- MODIFIED: Added controller
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            hintText: 'Full Name',
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: _emailController,
                           decoration: InputDecoration(
                             hintText: 'Email',
+                            prefixIcon: const Icon(Icons.email_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -157,15 +172,40 @@ class _RegisterState extends State<Register> {
                                   ),
                           ),
                         ),
-                        // ... (rest of the widgets)
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('OR', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.4))),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: OutlinedButton.icon(
+                            onPressed: _launchGoogleAuth,
+                            icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.login)),
+                            label: Text('Continue with Google',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.87))),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                              side: BorderSide(color: Theme.of(context).dividerColor),
+                            ),
+                          ),
+                        ),
                         const Spacer(),
                         Center(
                           child: RichText(
                             textAlign: TextAlign.center,
-                            text: const TextSpan(
+                            text: TextSpan(
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.black54,
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                               children: [
                                 TextSpan(
