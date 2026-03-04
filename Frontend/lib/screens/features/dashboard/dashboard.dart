@@ -1057,8 +1057,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildDateTimeline() {
     final now = DateTime.now();
-
-    // Find the previous Monday (or Sunday) to anchor the week
     final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
     final dates = List.generate(7, (i) => startOfWeek.add(Duration(days: i)));
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1080,9 +1078,9 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        // Day cells
+        // Day cells - use Expanded to prevent overflow
         Container(
-          height: 80,
+          height: 78,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
@@ -1097,69 +1095,66 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: dates.map((date) {
               final isSelected = DateUtils.isSameDay(date, _selectedDate);
               final isToday = DateUtils.isSameDay(date, now);
 
-              return GestureDetector(
-                onTap: () => setState(() => _selectedDate = date),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  width: 42,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: isSelected
-                        ? const LinearGradient(
-                            colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isSelected ? null : Colors.transparent,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Day abbreviation
-                      Text(
-                        DateFormat('E').format(date).substring(0, 1),
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : (isDark ? Colors.grey[500] : Colors.grey[500]),
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedDate = date),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 3, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: isSelected
+                          ? const LinearGradient(
+                              colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          DateFormat('E').format(date).substring(0, 1),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white.withValues(alpha: 0.8)
+                                : Colors.grey[500],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Day number
-                      Text(
-                        date.day.toString(),
-                        style: GoogleFonts.poppins(
-                          fontSize: isSelected ? 18 : 16,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark ? Colors.white : Colors.black87),
+                        const SizedBox(height: 3),
+                        Text(
+                          date.day.toString(),
+                          style: GoogleFonts.poppins(
+                            fontSize: isSelected ? 17 : 15,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white : Colors.black87),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Today dot indicator
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: isToday ? 5 : 0,
-                        height: isToday ? 5 : 0,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFFFF0066),
-                          shape: BoxShape.circle,
+                        const SizedBox(height: 3),
+                        // Today dot
+                        Container(
+                          width: isToday ? 4 : 0,
+                          height: isToday ? 4 : 0,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFFFF0066),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
