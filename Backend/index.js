@@ -25,6 +25,7 @@ client
 const account = new Appwrite.Account(client);
 const users = new Appwrite.Users(client);
 const { nanoid } = require("nanoid");
+const MOODS_COLLECTION_ID = "user_moods";
 
 const databases = new Appwrite.Databases(client);
 
@@ -1443,6 +1444,88 @@ app.put("/api/profile/avatar", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Error updating avatar:", error);
     res.status(500).json({ message: "Failed to update avatar", error: error.message });
+  }
+});
+
+// --- Mood Tracker Endpoints ---
+
+// 1. Post/Update Today's Mood
+app.post("/api/mood", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mood } = req.body;
+
+    if (!mood) {
+      return res.status(400).json({ message: "Mood field is required" });
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Check if user already submitted a mood today
+    const existingMoods = await databases.listDocuments(
+      DATABASE_ID,
+      MOODS_COLLECTION_ID,
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.equal("date", todayStr),
+        Appwrite.Query.limit(1)
+      ]
+    );
+
+    if (existingMoods.total > 0) {
+      // Update existing mood
+      const docId = existingMoods.documents[0].$id;
+      const updatedDoc = await databases.updateDocument(
+        DATABASE_ID,
+        MOODS_COLLECTION_ID,
+        docId,
+        { mood: mood }
+      );
+      return res.status(200).json(updatedDoc);
+    } else {
+      // Create new mood entry
+      const newDoc = await databases.createDocument(
+        DATABASE_ID,
+        MOODS_COLLECTION_ID,
+        Appwrite.ID.unique(),
+        {
+          userId: userId,
+          mood: mood,
+          date: todayStr
+        }
+      );
+      return res.status(201).json(newDoc);
+    }
+  } catch (error) {
+    console.error("Error saving mood:", error);
+    res.status(500).json({ message: "Failed to save mood", error: error.message });
+  }
+});
+
+// 2. Get Today's Mood
+app.get("/api/mood/today", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const existingMoods = await databases.listDocuments(
+      DATABASE_ID,
+      MOODS_COLLECTION_ID,
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.equal("date", todayStr),
+        Appwrite.Query.limit(1)
+      ]
+    );
+
+    if (existingMoods.total > 0) {
+      return res.status(200).json({ mood: existingMoods.documents[0].mood });
+    } else {
+      return res.status(200).json({ mood: null });
+    }
+  } catch (error) {
+    console.error("Error fetching mood:", error);
+    res.status(500).json({ message: "Failed to fetch mood", error: error.message });
   }
 });
 

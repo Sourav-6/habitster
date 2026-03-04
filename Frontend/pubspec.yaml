@@ -37,6 +37,7 @@ dev_dependencies:
   flutter_lints: ^3.0.1
   flutter_native_splash: ^2.3.10
   image: ^4.3.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -59,3 +60,8 @@ flutter_native_splash:
   android_12:
     image: assets/images/white_logo_padded.png
     icon_background_color: "#ff0066"
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"

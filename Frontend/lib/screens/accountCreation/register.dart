@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/fluid_button.dart';
 
 class Register extends StatefulWidget {
   // <-- NEW: Converted to StatefulWidget
@@ -145,32 +146,21 @@ class _RegisterState extends State<Register> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            // <-- MODIFIED: Updated onPressed and child
-                            onPressed: _isLoading ? null : _registerUser,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF0066),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  )
-                                : const Text(
-                                    'Register',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                        FluidButton(
+                          onPressed: _isLoading ? null : _registerUser,
+                          color: const Color(0xFFFF0066),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                )
+                              : const Text(
+                                  'Register',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
-                          ),
+                                ),
                         ),
                         const SizedBox(height: 24),
                         Row(
@@ -184,17 +174,36 @@ class _RegisterState extends State<Register> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton.icon(
-                            onPressed: _launchGoogleAuth,
-                            icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.login)),
-                            label: Text('Continue with Google',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.87))),
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                              side: BorderSide(color: Theme.of(context).dividerColor),
+                        Center(
+                          child: InkWell(
+                            onTap: _launchGoogleAuth,
+                            borderRadius: BorderRadius.circular(24),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: Colors.grey.shade400, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/google_logo.png',
+                                    height: 24,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.login),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Sign in with Google',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

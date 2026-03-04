@@ -184,6 +184,41 @@ class ApiService {
     }
   }
 
+  // --- Mood Tracker API ---
+
+  Future<void> saveDailyMood(String mood) async {
+    final Uri uri = Uri.parse('$_baseUrl/mood');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: json.encode({'mood': mood}),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to save mood (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<String?> getTodayMood() async {
+    final Uri uri = Uri.parse('$_baseUrl/mood/today');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['mood'] as String?;
+      } else {
+        throw Exception('Failed to load today mood (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
   // lib/services/api_service.dart
 
 // ... (getTasks function is above this)

@@ -216,6 +216,7 @@ class _TasksScreenState extends State<TasksScreen>
           ),
           ...overdueTasks.asMap().entries.map((entry) {
             return AnimatedTaskCard(
+              key: ValueKey(entry.value['\$id']),
               task: entry.value,
               index: entry.key,
               apiService: _apiService,
@@ -225,6 +226,14 @@ class _TasksScreenState extends State<TasksScreen>
                     final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
                     if (t != null) _completedTasks.add(t);
                     _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+              onRecurringUpdated: (updatedTask) {
+                if (mounted) {
+                  setState(() {
+                    final index = _tasks.indexWhere((t) => t['\$id'] == updatedTask['\$id']);
+                    if (index != -1) _tasks[index] = updatedTask;
                   });
                 }
               },
@@ -254,6 +263,7 @@ class _TasksScreenState extends State<TasksScreen>
         if (todayTasks.isNotEmpty)
           ...todayTasks.asMap().entries.map((entry) {
             return AnimatedTaskCard(
+              key: ValueKey(entry.value['\$id']),
               task: entry.value,
               index: entry.key + overdueTasks.length,
               apiService: _apiService,
@@ -263,6 +273,14 @@ class _TasksScreenState extends State<TasksScreen>
                     final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
                     if (t != null) _completedTasks.add(t);
                     _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+              onRecurringUpdated: (updatedTask) {
+                if (mounted) {
+                  setState(() {
+                    final index = _tasks.indexWhere((t) => t['\$id'] == updatedTask['\$id']);
+                    if (index != -1) _tasks[index] = updatedTask;
                   });
                 }
               },
@@ -299,6 +317,7 @@ class _TasksScreenState extends State<TasksScreen>
           ),
           ...upcomingTasks.asMap().entries.map((entry) {
             return AnimatedTaskCard(
+              key: ValueKey(entry.value['\$id']),
               task: entry.value,
               index: entry.key + overdueTasks.length + todayTasks.length,
               apiService: _apiService,
@@ -308,6 +327,14 @@ class _TasksScreenState extends State<TasksScreen>
                     final t = _tasks.firstWhere((element) => element['\$id'] == taskId, orElse: () => null);
                     if (t != null) _completedTasks.add(t);
                     _tasks.removeWhere((t) => t['\$id'] == taskId);
+                  });
+                }
+              },
+              onRecurringUpdated: (updatedTask) {
+                if (mounted) {
+                  setState(() {
+                    final index = _tasks.indexWhere((t) => t['\$id'] == updatedTask['\$id']);
+                    if (index != -1) _tasks[index] = updatedTask;
                   });
                 }
               },
@@ -716,6 +743,7 @@ class AnimatedTaskCard extends StatefulWidget {
   final int index;
   final ApiService apiService;
   final Function(String) onCompleted;
+  final Function(dynamic)? onRecurringUpdated;
 
   const AnimatedTaskCard({
     super.key,
@@ -723,6 +751,7 @@ class AnimatedTaskCard extends StatefulWidget {
     required this.index,
     required this.apiService,
     required this.onCompleted,
+    this.onRecurringUpdated,
   });
 
   @override
@@ -758,10 +787,27 @@ class _AnimatedTaskCardState extends State<AnimatedTaskCard> {
       } else if (recurrenceDays != null) {
         final currentDueDate = dueDateRaw != null ? DateTime.parse(dueDateRaw).toLocal() : DateTime.now();
         final nextDueDate = currentDueDate.add(Duration(days: recurrenceDays));
-        await widget.apiService.updateTask(taskId, {
+        final updatedTask = await widget.apiService.updateTask(taskId, {
           'dueDate': nextDueDate.toUtc().toIso8601String(),
         });
-        widget.onCompleted(taskId);
+        
+        // Notify parent that the recurring task was updated, but leave visually complete briefly for UX.
+        // It should NOT be permanently moved to completed list.
+        if (widget.onRecurringUpdated != null) {
+           widget.onRecurringUpdated!(updatedTask);
+        }
+        
+        // Optionally revert checkmark after a delay so they can check it again tomorrow!
+        if (mounted) {
+           Future.delayed(const Duration(milliseconds: 1000), () {
+             if (mounted) {
+               setState(() {
+                 _isChecking = false;
+                 _isCompleted = false;
+               });
+             }
+           });
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -15,6 +15,7 @@ import '../../../services/api_service.dart';
 import '../../../models/user_profile.dart';
 import '../../../widgets/habitster_loading_widget.dart';
 import '../profile/avatar_selection_screen.dart';
+import '../../../widgets/mood_tracker.dart';
 
 // App theme colors
 class AppColors {
@@ -143,10 +144,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
-      child: Icon(
-        Icons.chat_bubble_outline_rounded,
-        color: Theme.of(context).unselectedWidgetColor.withAlpha(180),
-        size: 26,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF4081), Color(0xFFFF80AB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF4081).withAlpha(100),
+              blurRadius: 12,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Center(
+            child: Text(
+              'H',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFFF4081),
+                letterSpacing: -1.5,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -206,6 +241,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isLoadingProfile = true;
   Map<String, int> _activityData = {};
   bool _isLoadingActivity = true;
+  String? _todayMood;
+  bool _isLoadingMood = true;
   Timer? _refreshTimer;
 
   @override
@@ -231,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen>
           _profile = UserProfile.fromJson(profileData);
           _isLoadingProfile = false;
         });
-        _loadActivityStats();
+        _loadMood();
       }
     } catch (e) {
       print('Error loading profile: $e');
@@ -258,6 +295,25 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           _isLoadingActivity = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMood() async {
+    try {
+      final mood = await _apiService.getTodayMood();
+      if (mounted) {
+        setState(() {
+          _todayMood = mood;
+          _isLoadingMood = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading mood: \$e');
+      if (mounted) {
+        setState(() {
+          _isLoadingMood = false;
         });
       }
     }
@@ -617,7 +673,17 @@ class _HomeScreenState extends State<HomeScreen>
                   _buildStatsSection(),
                   const SizedBox(height: 10),
                   _buildDateTimeline().animate().fade(duration: 600.ms, delay: 200.ms).slideX(begin: 0.05, end: 0),
-                  _buildActivityGraph().animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
+                  const SizedBox(height: 10),
+                  _isLoadingMood 
+                      ? const SizedBox.shrink() 
+                      : MoodTrackerCard(
+                          initialMood: _todayMood,
+                          onMoodSelected: (mood) {
+                            setState(() {
+                              _todayMood = mood;
+                            });
+                          },
+                        ).animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
                   // Add your home screen content here
                 ],

@@ -1,8 +1,18 @@
 // lib/screens/features/habits/create_habit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../services/api_service.dart'; // Import ApiService
 import 'dart:convert';
+
+// Local Theme Colors helper
+class AppColors {
+  static Color getBackgroundColor(BuildContext context) => Theme.of(context).scaffoldBackgroundColor;
+  static const primaryColor = Color(0xFFFF0066);
+  static Color getCardColor(BuildContext context) => Theme.of(context).cardColor;
+  static Color getTextColor(BuildContext context) => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+}
 
 class CreateHabitScreen extends StatefulWidget {
   const CreateHabitScreen({super.key});
@@ -19,10 +29,8 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
 
   // Form Controllers
   final TextEditingController _habitNameController = TextEditingController();
-  final TextEditingController _durationValueController =
-      TextEditingController();
-  final TextEditingController _frequencyValueController =
-      TextEditingController();
+  final TextEditingController _durationValueController = TextEditingController();
+  final TextEditingController _frequencyValueController = TextEditingController();
 
   // State variables
   DateTime _startDate = DateTime.now();
@@ -32,6 +40,11 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
   // Gamification properties
   String _selectedDifficulty = 'Medium';
   String _selectedCategory = 'Productivity';
+
+  final List<String> _weekDaysStr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final List<String> _difficulties = ['Small', 'Medium', 'Hard'];
+  final List<String> _categories = ['Productivity', 'Health', 'Mindfulness', 'Learning'];
+  final List<String> _durations = ['days', 'weeks', 'months'];
 
   @override
   void dispose() {
@@ -45,8 +58,19 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _startDate,
-      firstDate: DateTime(2020), // Allow past dates? Or just DateTime.now()?
+      firstDate: DateTime(2020), 
       lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primaryColor,
+                  onPrimary: Colors.white,
+                ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _startDate) {
       setState(() {
@@ -57,47 +81,38 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
 
   Future<void> _createHabit() async {
     if (!_formKey.currentState!.validate()) {
-      return; // Don't submit if form is invalid
+      return; 
     }
 
     String? frequencyValueToSend;
     if (_selectedFrequencyType == 'every_x_days') {
       frequencyValueToSend = _frequencyValueController.text;
     } else if (_selectedFrequencyType == 'specific_days') {
-      // Validate at least one day is selected
       if (!_selectedWeekdays.contains(true)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Please select at least one day for specific day frequency.'),
+              content: Text('Please select at least one day.'),
               backgroundColor: Colors.orange),
         );
-        return; // Stop submission
+        return; 
       }
-      // Convert selected days (true indices) to list of weekday numbers (1-7)
       List<int> selectedDays = [];
       for (int i = 0; i < _selectedWeekdays.length; i++) {
-        if (_selectedWeekdays[i]) {
-          selectedDays.add(i + 1); // DateTime uses 1 for Monday, 7 for Sunday
-        }
+        if (_selectedWeekdays[i]) selectedDays.add(i + 1);
       }
-      // Convert list to JSON string for storage
-      frequencyValueToSend =
-          json.encode(selectedDays); // Need import 'dart:convert';
+      frequencyValueToSend = json.encode(selectedDays); 
     }
 
     setState(() {
       _isLoading = true;
     });
 
-    // Prepare data for API
     final Map<String, dynamic> habitData = {
-      'habitName': _habitNameController.text,
+      'habitName': _habitNameController.text.trim(),
       'startDate': _startDate.toIso8601String(),
-      'durationValue': int.tryParse(_durationValueController.text) ?? 0,
+      'durationValue': int.tryParse(_durationValueController.text) ?? 1,
       'durationUnit': _selectedDurationUnit,
       'frequencyType': _selectedFrequencyType,
-      // Only include frequencyValue if relevant type is selected
       'frequencyValue': frequencyValueToSend,
       'difficulty': _selectedDifficulty,
       'category': _selectedCategory,
@@ -109,16 +124,22 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Habit "${newHabit['habitName']}" created!'),
-              backgroundColor: Colors.green),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
-        Navigator.pop(context, true); // Pop screen and indicate success
+        Navigator.pop(context, true); 
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Failed to create habit: $e'),
-              backgroundColor: Colors.red),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     } finally {
@@ -130,204 +151,296 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
     }
   }
 
+  InputDecoration _customInputDecoration(String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+      prefixIcon: Icon(icon, color: AppColors.primaryColor.withAlpha(200)),
+      filled: true,
+      fillColor: AppColors.getCardColor(context).withAlpha(150),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12, top: 24),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.getTextColor(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChoiceChip(String label, bool isSelected, Function() onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.fastOutSlowIn,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryColor : AppColors.getCardColor(context).withAlpha(150),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryColor.withAlpha(100),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.grey.withAlpha(50),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.getTextColor(context).withAlpha(180),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create New Habit')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _habitNameController,
-                decoration: const InputDecoration(labelText: 'Habit Name'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a name'
-                    : null,
+      backgroundColor: AppColors.getBackgroundColor(context),
+      appBar: AppBar(
+        title: Text(
+          'New Habit',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.getTextColor(context)),
+      ),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Beautiful Background Gradient blobs
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primaryColor.withAlpha(30),
               ),
-              const SizedBox(height: 16),
-
-              // Start Date Picker
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                        'Start Date: ${DateFormat('yyyy-MM-dd').format(_startDate)}'),
-                  ),
-                  TextButton(
-                    onPressed: () => _selectStartDate(context),
-                    child: const Text('Select Date'),
-                  ),
-                ],
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4A00E0).withAlpha(20),
               ),
-              const SizedBox(height: 16),
+            ),
+          ),
 
-              // Duration
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _durationValueController,
-                      decoration: const InputDecoration(labelText: 'Duration'),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null ||
-                            value.isEmpty ||
-                            int.tryParse(value) == null ||
-                            int.parse(value) <= 0) {
-                          return 'Enter valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedDurationUnit,
-                      items: ['days', 'weeks', 'months']
-                          .map((unit) =>
-                              DropdownMenuItem(value: unit, child: Text(unit)))
-                          .toList(),
-                      onChanged: (value) =>
-                          setState(() => _selectedDurationUnit = value!),
-                      decoration: const InputDecoration(labelText: 'Unit'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Frequency Type
-              DropdownButtonFormField<String>(
-                initialValue: _selectedFrequencyType,
-                items: [
-                  'daily',
-                  'every_x_days',
-                  'specific_days'
-                ] // Add more later?
-                    .map((type) => DropdownMenuItem(
-                        value: type, child: Text(type.replaceAll('_', ' '))))
-                    .toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedFrequencyType = value!),
-                decoration: const InputDecoration(labelText: 'Frequency'),
-              ),
-              const SizedBox(height: 16),
-
-              // Frequency Value (Conditional)
-              if (_selectedFrequencyType == 'every_x_days')
-                TextFormField(
-                  controller: _frequencyValueController,
-                  decoration:
-                      const InputDecoration(labelText: 'Repeat every (days)'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null ||
-                        value.isEmpty ||
-                        int.tryParse(value) == null ||
-                        int.parse(value) <= 0) {
-                      return 'Enter valid days';
-                    }
-                    return null;
-                  },
-                ),
-
-              if (_selectedFrequencyType == 'specific_days')
-                Column(
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Repeat on:',
-                        style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    ToggleButtons(
-                      isSelected: _selectedWeekdays,
-                      onPressed: (int index) {
-                        setState(() {
-                          _selectedWeekdays[index] = !_selectedWeekdays[index];
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      // Add styling as needed (selectedColor, fillColor, etc.)
-                      children: const [
-                        // Monday to Sunday
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Mon')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Tue')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Wed')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Thu')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Fri')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Sat')),
-                        Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Sun')),
-                      ],
-                    ),
-                    // Add validation feedback if no day is selected
-                    if (!_selectedWeekdays.contains(true))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          'Please select at least one day.',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 12),
+                    // Main Input
+                    TextFormField(
+                      controller: _habitNameController,
+                      style: GoogleFonts.poppins(fontSize: 16),
+                      decoration: _customInputDecoration('What do you want to build?', Icons.auto_awesome_rounded),
+                      validator: (value) => value == null || value.trim().isEmpty ? 'Please enter a name' : null,
+                    ).animate().fade(duration: 400.ms).slideY(begin: 0.1),
+
+                    _buildSectionTitle('Schedule').animate().fade(delay: 100.ms).slideY(begin: 0.1),
+
+                    // Start Date Card
+                    GestureDetector(
+                      onTap: () => _selectStartDate(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.getCardColor(context).withAlpha(150),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor.withAlpha(30),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryColor),
+                            ),
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Start Date',
+                                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+                                ),
+                                Text(
+                                  DateFormat('MMMM dd, yyyy').format(_startDate),
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.getTextColor(context)),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
+                    ).animate().fade(delay: 150.ms).slideY(begin: 0.1),
+
+                    const SizedBox(height: 16),
+
+                    // Frequency Selection
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _buildChoiceChip('Daily', _selectedFrequencyType == 'daily', () => setState(() => _selectedFrequencyType = 'daily')),
+                        _buildChoiceChip('Specific Days', _selectedFrequencyType == 'specific_days', () => setState(() => _selectedFrequencyType = 'specific_days')),
+                        _buildChoiceChip('Interval', _selectedFrequencyType == 'every_x_days', () => setState(() => _selectedFrequencyType = 'every_x_days')),
+                      ],
+                    ).animate().fade(delay: 200.ms).slideY(begin: 0.1),
+
+                    // Conditional Frequency Inputs
+                    if (_selectedFrequencyType == 'every_x_days') ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _frequencyValueController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: _customInputDecoration('Repeat every X days', Icons.repeat_rounded),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => (v == null || int.tryParse(v) == null || int.parse(v) <= 0) ? 'Enter valid days' : null,
+                      ).animate().fade(),
+                    ],
+
+                    if (_selectedFrequencyType == 'specific_days') ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(7, (index) {
+                          final isSelected = _selectedWeekdays[index];
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedWeekdays[index] = !isSelected),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutBack,
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primaryColor : AppColors.getCardColor(context).withAlpha(150),
+                                shape: BoxShape.circle,
+                                boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryColor.withAlpha(100), blurRadius: 8)] : [],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _weekDaysStr[index][0],
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? Colors.white : AppColors.getTextColor(context).withAlpha(150),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ).animate().fade().scale(),
+                    ],
+
+                    _buildSectionTitle('Gamification').animate().fade(delay: 300.ms).slideY(begin: 0.1),
+
+                    Text('Category', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: _categories.map((cat) => Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: _buildChoiceChip(cat, _selectedCategory == cat, () => setState(() => _selectedCategory = cat)),
+                        )).toList(),
+                      ),
+                    ).animate().fade(delay: 350.ms).slideY(begin: 0.1),
+
+                    const SizedBox(height: 16),
+
+                    Text('Difficulty (XP Multiplier)', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: _difficulties.map((diff) => Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: _buildChoiceChip(diff, _selectedDifficulty == diff, () => setState(() => _selectedDifficulty = diff)),
+                      )).toList(),
+                    ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
+
+                    const SizedBox(height: 48),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _createHabit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 8,
+                          shadowColor: AppColors.primaryColor.withAlpha(150),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                'Create Habit',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ).animate().fade(delay: 500.ms).slideY(begin: 0.2),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
-
-              const SizedBox(height: 16),
-              
-              // Gamification: Difficulty
-              DropdownButtonFormField<String>(
-                initialValue: _selectedDifficulty,
-                items: ['Small', 'Medium', 'Hard']
-                    .map((diff) => DropdownMenuItem(value: diff, child: Text(diff)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedDifficulty = value!),
-                decoration: const InputDecoration(labelText: 'Difficulty (XP Reward)'),
               ),
-              const SizedBox(height: 16),
-
-              // Gamification: Skill Category
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                items: ['Productivity', 'Health', 'Mindfulness', 'Learning']
-                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedCategory = value!),
-                decoration: const InputDecoration(labelText: 'Skill Category'),
-              ),
-
-              const SizedBox(height: 32),
-              Center(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createHabit,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Create Habit'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
