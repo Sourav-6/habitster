@@ -380,110 +380,90 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 16),
-        height: _isReading ? 420 : 76,
+        height: _isReading ? 420 : 58,
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: themeColor.withValues(alpha: isDark ? 0.25 : 0.12),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : themeColor.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Stack(
           children: [
-            // Idle compact card
+            // Idle compact single-row pill
             if (!_isReading)
               Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: _startReading,
-                  borderRadius: BorderRadius.circular(24),
-                    child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
                     child: Row(
                       children: [
-                        // Left icon — smaller
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                themeColor.withValues(alpha: isDark ? 0.3 : 0.2),
-                                themeColor.withValues(alpha: isDark ? 0.1 : 0.05),
+                        // Emoji
+                        Text(
+                          _todaysTopic['icon'] as String,
+                          style: const TextStyle(fontSize: 22),
+                        ),
+                        const SizedBox(width: 10),
+                        // Label + title  
+                        Expanded(
+                          child: RichText(
+                            overflow: TextOverflow.ellipsis,
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Brain Fuel  ',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeColor,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: _todaysTopic['title'] as String,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: themeColor.withValues(alpha: 0.2),
-                              width: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // XP chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: themeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '+10 XP',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: themeColor,
                             ),
                           ),
-                          child: Text(_todaysTopic['icon'] as String,
-                              style: const TextStyle(fontSize: 20)),
                         ),
-                        const SizedBox(width: 12),
-                        // Text
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.bolt_rounded,
-                                      size: 13, color: themeColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "Brain Fuel  •  +10 XP",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                               Text(
-                                _todaysTopic['title'] as String,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Arrow button
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.grey[800]
-                                : Colors.grey[100],
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.arrow_forward_ios_rounded,
-                              color: isDark
-                                  ? Colors.grey[400]
-                                  : Colors.grey[600],
-                              size: 14),
-                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.chevron_right_rounded,
+                            color: isDark ? Colors.grey[500] : Colors.grey[500],
+                            size: 20),
                       ],
                     ),
                   ),
