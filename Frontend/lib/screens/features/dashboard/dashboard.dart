@@ -16,6 +16,7 @@ import '../../../models/user_profile.dart';
 import '../../../widgets/habitster_loading_widget.dart';
 import '../profile/avatar_selection_screen.dart';
 import '../../../widgets/mood_tracker.dart';
+import '../../../widgets/daily_learning_card.dart';
 import '../island/island_screen.dart';
 
 // App theme colors
@@ -690,6 +691,16 @@ class _HomeScreenState extends State<HomeScreen>
                               });
                             },
                           ).animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
+                    
+                    const SizedBox(height: 16), // Less gap to keep cards tight
+                    
+                    // Daily Learning Gamification Card
+                    DailyLearningCard(
+                      onXpGained: () {
+                        // Refresh the profile to reflect the new XP and Level in the header
+                        _fetchProfileData();
+                      },
+                    ).animate().fade(duration: 800.ms, delay: 400.ms).slideY(begin: 0.1, end: 0),
                     
                     const SizedBox(height: 24),
                     

@@ -640,9 +640,35 @@ class ApiService {
         throw Exception('Failed to load user profile: ${response.body}');
       }
     } catch (e) {
-      rethrow;
+      throw Exception('Network error or server unreachable: \$e');
     }
   }
+
+  Future<Map<String, dynamic>> awardXP(int amount, {String category = 'learning'}) async {
+    final Uri xpUri = Uri.parse('\$_baseUrl/profile/xp');
+    try {
+      final headers = await _getAuthHeaders();
+      final body = json.encode({
+        'amount': amount,
+        'category': category,
+      });
+
+      final response = await http.post(
+        xpUri,
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to award XP: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error or server unreachable: \$e');
+    }
+  }
+
 
   Future<List<dynamic>> getLeaderboard() async {
     final Uri leaderboardUri = Uri.parse('$_baseUrl/leaderboard');

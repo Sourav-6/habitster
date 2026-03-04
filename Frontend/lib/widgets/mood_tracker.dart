@@ -81,164 +81,114 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
       ),
       child: Column(
         children: [
-          // Top aesthetic header area
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  height: 120,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFE8EAF6),
-                        Color(0xFFFFF3E0),
-                      ],
-                    ),
-                  ),
-                ),
-                // Decorative elements imitating sticker art
-                Positioned(
-                  top: 20,
-                  left: 20,
-                  child: const Text('✨', style: TextStyle(fontSize: 32)),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 80,
-                  child: const Text('💖', style: TextStyle(fontSize: 36)),
-                ),
-                Positioned(
-                  bottom: 10,
-                  left: 60,
-                  child: const Text('🌈', style: TextStyle(fontSize: 40)),
-                ),
-                Positioned(
-                  bottom: 20,
-                  right: 40,
-                  child: const Text('🌟', style: TextStyle(fontSize: 32)),
-                ),
-                // Soft white rounded cutout overlap at the bottom of the header
-                Positioned(
-                  bottom: -15,
-                  left: -20,
-                  right: -20,
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(50),
-                        topRight: Radius.circular(50),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
           // Main Content
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.wb_sunny_outlined, size: 16, color: Color(0xFF7E57C2)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Daily Journal',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF7E57C2),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7E57C2).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF7E57C2)),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Daily Journal',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            Text(
+                              'How are you feeling today?',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'How are you feeling today?',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 
                 // Mood Pills
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _moods.entries.map((entry) {
-                    final mood = entry.key;
-                    final data = entry.value;
-                    final isSelected = _selectedMood == mood;
-
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _handleMoodSelect(mood),
-                          borderRadius: BorderRadius.circular(24),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected ? data['color'] : Theme.of(context).scaffoldBackgroundColor,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: isSelected ? Colors.transparent : Colors.grey.withOpacity(0.2),
-                                width: 1,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: _moods.entries.map((entry) {
+                      final mood = entry.key;
+                      final data = entry.value;
+                      final isSelected = _selectedMood == mood;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => _handleMoodSelect(mood),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? data['color'] : Theme.of(context).scaffoldBackgroundColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.transparent : Colors.grey.withValues(alpha: 0.15),
+                                    width: 1,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: (data['color'] as Color).withValues(alpha: 0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          )
+                                        ]
+                                      : [],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(data['icon'], style: const TextStyle(fontSize: 20)),
+                                    if (isSelected) const SizedBox(width: 6),
+                                    if (isSelected)
+                                      Text(
+                                        mood,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: (data['color'] as Color).withOpacity(0.4),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      )
-                                    ]
-                                  : [],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Circular icon background
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white.withOpacity(0.5) : data['color'],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(data['icon'], style: const TextStyle(fontSize: 16)),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  mood,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],

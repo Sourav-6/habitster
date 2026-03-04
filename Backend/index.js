@@ -1406,6 +1406,70 @@ app.get("/api/stats/activity", authMiddleware, async (req, res) => {
   }
 });
 
+// --- NEW Gamification XP Award Endpoint ---
+// Accepts generic actions like "read_daily_card" to grant XP outside of habits
+app.post("/api/profile/xp", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { amount = 10, category = "learning" } = req.body;
+
+    const profile = await databases.getDocument(
+      DATABASE_ID,
+      USER_PROFILES_COLLECTION_ID,
+      userId
+    );
+
+    let newXp = (profile.xp || 0) + amount;
+    let newLevel = profile.level || 1;
+
+    // Standard Level Up curve: 100 XP per level
+    const xpNeeded = profile.level * 100;
+    let leveledUp = false;
+    if (newXp >= xpNeeded) {
+      newLevel += 1;
+      leveledUp = true;
+    }
+
+    // Add to specific category
+    let healthXp = profile.healthXp || 0;
+    let productivityXp = profile.productivityXp || 0;
+    let mindfulnessXp = profile.mindfulnessXp || 0;
+    let learningXp = profile.learningXp || 0;
+
+    const cat = category.toLowerCase();
+    if (cat === "health") healthXp += amount;
+    else if (cat === "mindfulness") mindfulnessXp += amount;
+    else if (cat === "learning") learningXp += amount;
+    else productivityXp += amount;
+
+    const updatedProfile = await databases.updateDocument(
+      DATABASE_ID,
+      USER_PROFILES_COLLECTION_ID,
+      userId,
+      {
+        xp: newXp,
+        level: newLevel,
+        healthXp,
+        productivityXp,
+        mindfulnessXp,
+        learningXp,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      leveledUp,
+      xpGained: amount,
+      newXp,
+      newLevel,
+      profile: updatedProfile
+    });
+  } catch (error) {
+    console.error("Error awarding XP:", error);
+    res.status(500).json({ message: "Failed to award XP", error: error.message });
+  }
+});
+
 // Update Equipped Avatar
 app.put("/api/profile/avatar", authMiddleware, async (req, res) => {
   try {
