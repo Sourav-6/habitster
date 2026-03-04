@@ -4,6 +4,7 @@ const pendingActions = require("./pendingActions");
 const databases = new Databases(client);
 const Groq = require("groq-sdk");
 require("dotenv").config();
+const { search } = require("duck-duck-scrape");
 
 const DATABASE_ID = "68f3c29000072cae03e0";
 const TASKS_COLLECTION_ID = "tasks-storage";
@@ -148,6 +149,20 @@ const tools = [
         required: ["habitId"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "searchWeb",
+      description: "Search the internet to answer general questions, find advice, or look up facts.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The specific search query" }
+        },
+        required: ["query"]
+      }
+    }
   }
 ];
 
@@ -212,12 +227,13 @@ async function callLLM(userId, message, history = []) {
           content: `You are Habitster Coach, a warm, encouraging, and actionable AI.
           
           Guidelines:
-          1. PERSONAL KNOWLEDGE: "Habitster" is a gamified habit and task tracking app initially built as a final year project by a 4-member team consisting of M. Uvaiz shah, Sourav Vijay, Safeer Sifarath, and Sreelakshmi V S. If asked what Habitster is, who built Habitster, or who created you, proudly state this description and credit the entire team.
-          2. GREETING/SUMMARY: If the user explicitly asks for a status update or just greets you (hi, hello), warmly greet them and summarize their pending tasks and habits from the context below. 
-          3. CONVERSATION: If the user asks general questions, chat with them naturally without forcefully listing their tasks.
-          4. ACTIONABLE: Use the IDs provided below to instantly update, delete, or complete items when requested.
+          1. PERSONAL KNOWLEDGE: "Habitster" is a gamified habit tracking app built as a final year project by M. Uvaiz shah, Sourav Vijay, Safeer Sifarath, and Sreelakshmi V S.
+          2. CONTEXT AWARENESS: DO NOT list the user's tasks or habits unless they specifically ask "what are my tasks", ask for a status update, or ask what they should do. If they just say "hi" or ask a general question, chat with them naturally!
+          3. ASSISTANCE & SEARCH: If the user asks for tips, facts, solutions, or advice, use the 'searchWeb' tool to look up information from the internet to help them.
+          4. ACTIONABLE: Use the tools to create, update, delete, or complete items when requested.
           5. COMPLETION: When completing a habit, use 'completeHabit'. When completing a task, use 'completeTask'.
 
+          Context Data (DO NOT read this aloud unless explicitly asked):
           ${userContextString}
           
           UserID: ${userId}`
@@ -329,6 +345,15 @@ async function callLLM(userId, message, history = []) {
                 });
               } catch (e) {
                 console.error("[Groq Agent] XP Update error:", e.message);
+              }
+            } else if (functionName === "searchWeb") {
+              console.log("[Groq Agent] Searching web for:", args.query);
+              const searchResults = await search(args.query);
+              if (searchResults && searchResults.results && searchResults.results.length > 0) {
+                const snippets = searchResults.results.slice(0, 3).map(r => r.description).join("\\n- ");
+                result = { searchResults: snippets };
+              } else {
+                result = { searchResults: "No results found for that exact query." };
               }
             }
           } catch (err) {
