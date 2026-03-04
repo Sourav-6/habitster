@@ -681,6 +681,16 @@ class _HomeScreenState extends State<HomeScreen>
                     _buildStatsSection(),
                     const SizedBox(height: 16),
                     
+                    // Daily Learning Gamification Card
+                    DailyLearningCard(
+                      onXpGained: () {
+                        // Refresh the profile to reflect the new XP and Level in the header
+                        _loadProfile();
+                      },
+                    ).animate().fade(duration: 800.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
+                    
+                    const SizedBox(height: 16), // Less gap to keep cards tight
+                    
                     _isLoadingMood 
                         ? const SizedBox.shrink() 
                         : MoodTrackerCard(
@@ -690,17 +700,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 _todayMood = mood;
                               });
                             },
-                          ).animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
-                    
-                    const SizedBox(height: 16), // Less gap to keep cards tight
-                    
-                    // Daily Learning Gamification Card
-                    DailyLearningCard(
-                      onXpGained: () {
-                        // Refresh the profile to reflect the new XP and Level in the header
-                        _loadProfile();
-                      },
-                    ).animate().fade(duration: 800.ms, delay: 400.ms).slideY(begin: 0.1, end: 0),
+                          ).animate().fade(duration: 700.ms, delay: 400.ms).slideY(begin: 0.1, end: 0),
                     
                     const SizedBox(height: 24),
                     

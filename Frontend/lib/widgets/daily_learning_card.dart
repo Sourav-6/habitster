@@ -149,12 +149,29 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
     }
   }
 
-  Widget _buildReadingOverlay() {
+  Widget _buildReadingOverlay(Color themeColor, bool isDark) {
     return Positioned.fill(
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          // Smooth gradient background when expanded for reading
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark 
+              ? [
+                  Theme.of(context).cardColor,
+                  themeColor.withValues(alpha: 0.15)
+                ]
+              : [
+                  Theme.of(context).cardColor,
+                  themeColor.withValues(alpha: 0.05)
+                ],
+          ),
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: themeColor.withValues(alpha: isDark ? 0.3 : 0.1),
+            width: 1.5,
+          )
         ),
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -164,7 +181,14 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
               children: [
                 Row(
                   children: [
-                    Text(_todaysTopic['icon']!, style: const TextStyle(fontSize: 24)),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: themeColor.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(_todaysTopic['icon']!, style: const TextStyle(fontSize: 20)),
+                    ),
                     const SizedBox(width: 12),
                     Text(
                       _todaysTopic['title']!,
@@ -177,7 +201,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: Icon(Icons.close_rounded, color: isDark ? Colors.grey[400] : Colors.grey[600]),
                   onPressed: _isCompleted ? null : _cancelReading,
                 ),
               ],
@@ -189,9 +213,9 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                 child: Text(
                   _todaysTopic['content']!,
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    height: 1.6,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontSize: 15,
+                    height: 1.7,
+                    color: isDark ? Colors.grey[300] : Colors.grey[800],
                   ),
                 ),
               ),
@@ -203,21 +227,31 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
               ( _isClaiming 
                 ? const CircularProgressIndicator()
                 : Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)], // Success green
+                      ),
                       borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle, color: Colors.green),
+                        const Icon(Icons.stars_rounded, color: Colors.white, size: 24),
                         const SizedBox(width: 8),
                         Text(
                           'Lesson Complete! +10 XP',
                           style: GoogleFonts.poppins(
-                            color: Colors.green,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
                       ],
@@ -226,21 +260,39 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
               )
             : Column(
                 children: [
-                  LinearProgressIndicator(
-                    value: _progress,
-                    backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(int.parse(_todaysTopic['themeColor']!.replaceFirst('0x', ''), radix: 16))
-                    ),
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(10),
+                  Stack(
+                    children: [
+                      Container(
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey[800] : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(seconds: 1),
+                        height: 10,
+                        width: MediaQuery.of(context).size.width * 0.75 * _progress, // Approx width matching card
+                        decoration: BoxDecoration(
+                          color: themeColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeColor.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
                     'Read for \$_secondsLeft seconds to earn XP...',
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                 ],
@@ -254,17 +306,20 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final themeColor = Color(int.parse(_todaysTopic['themeColor']!.replaceFirst('0x', ''), radix: 16));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return RepaintBoundary( // Avoid rebuilding the whole dashboard during timer tick
-      child: Container(
+    return RepaintBoundary( 
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutBack,
         margin: const EdgeInsets.only(bottom: 24),
-        height: _isReading ? 350 : 120, // Expands when reading
+        height: _isReading ? 400 : 130, // Taller for more reading space
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -285,10 +340,21 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                       children: [
                         // Left Icon Block
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: themeColor.withValues(alpha: 0.1),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                themeColor.withValues(alpha: isDark ? 0.3 : 0.2),
+                                themeColor.withValues(alpha: isDark ? 0.1 : 0.05),
+                              ]
+                            ),
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: themeColor.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
                           ),
                           child: Text(_todaysTopic['icon']!, style: const TextStyle(fontSize: 32)),
                         ),
@@ -301,14 +367,14 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.school, size: 14, color: Colors.grey),
+                                  Icon(Icons.auto_awesome_rounded, size: 16, color: themeColor),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Daily Learning  •  +10 XP',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.grey[600],
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                                     ),
                                   ),
                                 ],
@@ -326,7 +392,14 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                           ),
                         ),
                         // Right Arrow
-                        Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey[400], size: 20),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[800] : Colors.grey[100],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.arrow_forward_ios_rounded, color: isDark ? Colors.grey[400] : Colors.grey[600], size: 16),
+                        ),
                       ],
                     ),
                   ),
@@ -335,7 +408,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
               
             // Reading State (Expanded Card)
             if (_isReading)
-              _buildReadingOverlay().animate().fade(duration: 300.ms),
+              _buildReadingOverlay(themeColor, isDark).animate().fade(duration: 300.ms),
           ],
         ),
       ),
