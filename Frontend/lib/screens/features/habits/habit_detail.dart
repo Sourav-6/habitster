@@ -645,38 +645,41 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
   }
 
   double _calculateCompletionPercentage() {
-    DateTime start = DateTime.parse(widget.habit['startDate']).toLocal();
-    DateTime end = _calculateEndDate();
-    DateTime now = DateTime.now();
-
-    if (now.isBefore(start)) return 0.0;
-    if (now.isAfter(end) || now.isAtSameMomentAs(end)) return 100.0;
-
-    int totalDuration = end.difference(start).inDays;
-    int elapsedDuration = now.difference(start).inDays;
-
-    if (totalDuration <= 0) return 100.0; // Avoid division by zero
-
-    return (elapsedDuration / totalDuration * 100).clamp(0.0, 100.0);
+    int durationValue = widget.habit['durationValue'] ?? 1;
+    String durationUnit = widget.habit['durationUnit'] ?? 'days';
+    int totalDays = durationValue;
+    if (durationUnit == 'weeks') {
+      totalDays *= 7;
+    } else if (durationUnit == 'months') {
+      totalDays *= 30; // Approximation
+    }
+    
+    int completed = widget.habit['currentStreak'] ?? 0;
+    
+    if (totalDays <= 0) return 0.0;
+    return (completed / totalDays * 100).clamp(0.0, 100.0);
   }
 
   String _calculateTimeRemaining() {
-    DateTime end = _calculateEndDate();
-    DateTime now = DateTime.now();
-    Duration remaining = end.difference(now);
-
-    if (remaining.isNegative) return "Completed";
-
-    if (remaining.inDays > 30) {
-      // Very approximate month calculation
-      int months = (remaining.inDays / 30).floor();
+    int durationValue = widget.habit['durationValue'] ?? 1;
+    String durationUnit = widget.habit['durationUnit'] ?? 'days';
+    int totalDays = durationValue;
+    if (durationUnit == 'weeks') {
+      totalDays *= 7;
+    } else if (durationUnit == 'months') {
+      totalDays *= 30; // Approximation
+    }
+    
+    int completed = widget.habit['currentStreak'] ?? 0;
+    int remaining = totalDays - completed;
+    
+    if (remaining <= 0) return "Completed";
+    
+    if (remaining > 30) {
+      int months = (remaining / 30).floor();
       return "~$months months left";
-    } else if (remaining.inDays >= 1) {
-      return "${remaining.inDays} days left";
-    } else if (remaining.inHours >= 1) {
-      return "${remaining.inHours} hours left";
     } else {
-      return "Ends today";
+      return "$remaining days left";
     }
   }
 

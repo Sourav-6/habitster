@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../habits/habits.dart';
+import '../habits/habit_detail.dart';
 import '../tasks/tasks.dart';
 import '../settings/settings_screen.dart';
 import '../chatBot/chat_screen.dart';
@@ -307,6 +308,20 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// Returns true if the given habit was already completed today.
+  bool _isHabitCompletedToday(dynamic habit) {
+    if (habit['lastCompletedDate'] == null) return false;
+    try {
+      final lastCompleted = DateTime.parse(habit['lastCompletedDate']).toLocal();
+      final now = DateTime.now();
+      return lastCompleted.year == now.year &&
+          lastCompleted.month == now.month &&
+          lastCompleted.day == now.day;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _loadWeather() async {
     try {
       // Free Open-Meteo API using Mumbai coordinates
@@ -504,11 +519,161 @@ class _HomeScreenState extends State<HomeScreen>
     ).animate().fade().slideY(begin: -0.2, end: 0);
   }
 
+  Widget _buildEnergyStreakCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final energy = _profile?.avatarEnergy ?? 100;
+    final bestStreak = _profile?.bestStreak ?? 0;
+    final level = _profile?.level ?? 1;
+    final xp = _profile?.xp ?? 0;
+    final xpPercent = (_profile?.xpProgressToNextLevel ?? 0.0).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 20, right: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // --- Energy Bar ---
+          Row(
+            children: [
+              const Text('⚡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'Energy',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$energy%',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: (energy / 100).clamp(0.0, 1.0),
+              minHeight: 7,
+              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.07),
+              valueColor: AlwaysStoppedAnimation(
+                energy > 60 ? Colors.amber[600]! : energy > 30 ? Colors.orange : Colors.red,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // --- XP / Level bar ---
+          Row(
+            children: [
+              const Text('✨', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'Lvl $level  ·  $xp XP',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: xpPercent,
+              minHeight: 7,
+              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.07),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFFFF0066)),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // --- Best Streak ---
+          Row(
+            children: [
+              const Text('🔥', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$bestStreak days',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'Best Streak',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fade(duration: 600.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  /// Maps Open-Meteo WMO weather code to a human-readable description.
+  String _weatherDescription() {
+    if (_weatherData == null) return 'Loading...';
+    final code = (_weatherData!['weathercode'] as num?)?.toInt() ?? 0;
+    // Reference: https://open-meteo.com/en/docs#weathervariables
+    if (code == 0) return 'Clear sky';
+    if (code == 1) return 'Mainly clear';
+    if (code == 2) return 'Partly cloudy';
+    if (code == 3) return 'Overcast';
+    if (code <= 9) return 'Foggy';
+    if (code <= 19) return 'Drizzle';
+    if (code <= 29) return 'Rain';
+    if (code <= 39) return 'Snow';
+    if (code <= 49) return 'Freezing drizzle';
+    if (code <= 59) return 'Light rain';
+    if (code <= 69) return 'Heavy rain';
+    if (code <= 79) return 'Snow fall';
+    if (code <= 84) return 'Rain showers';
+    if (code <= 94) return 'Thunderstorm';
+    return 'Stormy';
+  }
+
+  /// Picks the right emoji for the weather code and current hour.
+  String _weatherEmoji() {
+    if (_weatherData == null) return '🌡️';
+    final code = (_weatherData!['weathercode'] as num?)?.toInt() ?? 0;
+    final hour = DateTime.now().hour;
+    final isNight = hour >= 21 || hour < 5;
+    if (code == 0) return isNight ? '🌙' : '☀️';
+    if (code <= 2) return isNight ? '🌌' : '⛅';
+    if (code == 3) return '☁️';
+    if (code <= 9) return '🌫️';
+    if (code <= 39) return '🌧️';
+    if (code <= 79) return '❄️';
+    if (code <= 84) return '🌦️';
+    return '⛈️';
+  }
+
   Widget _buildWeatherWidget() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
+    return Container(
         margin: const EdgeInsets.only(top: 24, bottom: 20),
         padding: const EdgeInsets.all(2), // Gradient border padding
         decoration: BoxDecoration(
@@ -546,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('🌤️', style: TextStyle(fontSize: 48)),
+                        Text(_weatherEmoji(), style: const TextStyle(fontSize: 48)),
                         const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ),
                             Text(
-                              _weatherData != null ? 'partially sunny' : 'Loading...',
+                              _weatherDescription(),
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black87.withValues(alpha: 0.6),
@@ -593,8 +758,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ),
-    ).animate().fade(duration: 800.ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutCubic);
+      ).animate().fade(duration: 800.ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutCubic);
   }
 
   Widget _buildGreeting() {
@@ -713,20 +877,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                 ],
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.settings_rounded,
-                  color: Color(0xFFB0B0B0),
-                  size: 28,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SettingsScreen()),
-                  );
-                },
               ),
             ],
           ),
@@ -868,12 +1018,27 @@ class _HomeScreenState extends State<HomeScreen>
     final name = habit['habitName'] ?? 'Habit';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Calculate total days from duration settings
+    int durationValue = habit['durationValue'] ?? 1;
+    String durationUnit = habit['durationUnit'] ?? 'days';
+    int totalDays = durationValue;
+    if (durationUnit == 'weeks') {
+      totalDays *= 7;
+    } else if (durationUnit == 'months') {
+      totalDays *= 30; // Approximation
+    }
+    
+    // Calculate progress based on streak
+    int completed = habit['currentStreak'] ?? 0;
+    double progress = totalDays > 0 ? (completed / totalDays).clamp(0.0, 1.0) : 0.0;
+    
     return GestureDetector(
       onTap: () {
+        final bool alreadyDone = _isHabitCompletedToday(habit);
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HabitDetailScreen(habit: habit, isCompleted: false),
+            builder: (context) => HabitDetailScreen(habit: habit, isCompleted: alreadyDone),
           ),
         ).then((_) {
           _loadHabits(); // Reload to reflect any completions or favorite toggles
@@ -912,11 +1077,11 @@ class _HomeScreenState extends State<HomeScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Progress bar',
+                  'Progress',
                   style: GoogleFonts.poppins(fontSize: 10, color: isDark ? Colors.white60 : Colors.black54),
                 ),
                 Text(
-                  '4/8', // Mock data for aesthetics
+                  '$completed/$totalDays',
                   style: GoogleFonts.poppins(fontSize: 10, color: isDark ? Colors.white60 : Colors.black54),
                 ),
               ],
@@ -932,7 +1097,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: 0.5, // 4/8
+                widthFactor: progress,
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(3),
@@ -980,10 +1145,11 @@ class _HomeScreenState extends State<HomeScreen>
     
     return GestureDetector(
       onTap: () {
+        final bool alreadyDone = _isHabitCompletedToday(habit);
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HabitDetailScreen(habit: habit, isCompleted: false),
+            builder: (context) => HabitDetailScreen(habit: habit, isCompleted: alreadyDone),
           ),
         ).then((_) {
           _loadHabits(); // Reload to reflect any completions or favorite toggles
@@ -1084,7 +1250,14 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTopHeader(),
-                    _buildWeatherWidget(),
+                    // Row: Energy+Streak (left) ←→ Weather (right)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _buildEnergyStreakCard()),
+                        _buildWeatherWidget(),
+                      ],
+                    ),
                     _buildGreeting(),
                     const SizedBox(height: 32),
                     

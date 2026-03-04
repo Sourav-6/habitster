@@ -1387,6 +1387,22 @@ app.get("/api/profile", authMiddleware, async (req, res) => {
   }
 });
 
+// Update User Display Name (persisted in Appwrite per-account)
+app.put("/api/profile/name", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { name } = req.body;
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: "Name cannot be empty." });
+    }
+    await users.updateName(userId, name.trim());
+    res.status(200).json({ message: "Name updated successfully.", name: name.trim() });
+  } catch (error) {
+    console.error("Error updating user name:", error);
+    res.status(500).json({ message: "Failed to update name", error: error.message });
+  }
+});
+
 // Get Leaderboard (Top 10 by XP)
 app.get("/api/leaderboard", authMiddleware, async (req, res) => {
   try {

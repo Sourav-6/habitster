@@ -59,56 +59,88 @@ class _HabitCompletionDetailScreenState
         widget.historyEntry['notes'] ?? 'No notes added for this day.';
 
     return Scaffold(
-      appBar: AppBar(title: Text('Details for $formattedDate')),
+      appBar: AppBar(
+        title: Text(
+          'Details for $formattedDate',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: ListView(
           // Use ListView for potentially long notes/subtask lists
           children: [
             Text('Completion Details',
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 16),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
 
-            Text('Subtasks Status:',
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            Text('Subtasks Status',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
             if (widget.allSubtasks.isEmpty)
-              const Text('  - (No subtasks defined for this habit)')
+              Text('  - (No subtasks defined for this habit)', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6)))
             else
-              Column(
-                // Use Column within ListView if list is short
-                children: widget.allSubtasks.map((subtask) {
-                  final subtaskId = subtask['\$id'] as String;
-                  final subtaskName =
-                      subtask['subtaskName'] ?? 'Unnamed Subtask';
-                  // Check if this subtask's ID is in the completed set
-                  final bool wasCompleted = completedIds.contains(subtaskId);
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  children: widget.allSubtasks.map((subtask) {
+                    final subtaskId = subtask['\$id'] as String;
+                    final subtaskName = subtask['subtaskName'] ?? 'Unnamed Subtask';
+                    // Check if this subtask's ID is in the completed set
+                    final bool wasCompleted = completedIds.contains(subtaskId);
 
-                  return ListTile(
-                    leading: Checkbox(
-                      value: wasCompleted,
-                      onChanged: null, // Disable checkbox in history view
-                    ),
-                    title: Text(
-                      subtaskName,
-                      style: TextStyle(
-                        // Optional: Grey out text if not completed?
-                        color: wasCompleted ? Colors.black : Colors.grey,
+                    return ListTile(
+                      leading: Checkbox(
+                        value: wasCompleted,
+                        onChanged: null, // Disable checkbox in history view
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.disabled)) {
+                            return wasCompleted ? Theme.of(context).primaryColor : Colors.transparent;
+                          }
+                          return null;
+                        }),
                       ),
-                    ),
-                    dense: true,
-                  );
-                }).toList(),
+                      title: Text(
+                        subtaskName,
+                        style: TextStyle(
+                          color: wasCompleted 
+                              ? Theme.of(context).textTheme.bodyLarge?.color 
+                              : Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
+                          decoration: wasCompleted ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      dense: true,
+                    );
+                  }).toList(),
+                ),
               ),
-            // --- End NEW ---
+            
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 16),
-
-            Text('Notes:', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(notes.isNotEmpty
-                ? notes
-                : '(No notes added)'), // Display the notes
+            Text('Notes', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+              ),
+              child: Text(
+                notes.isNotEmpty ? notes : '(No notes added)',
+                style: TextStyle(
+                  color: notes.isNotEmpty 
+                      ? Theme.of(context).textTheme.bodyLarge?.color 
+                      : Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                  fontStyle: notes.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                  height: 1.5,
+                ),
+              ),
+            ), 
           ],
         ),
       ),

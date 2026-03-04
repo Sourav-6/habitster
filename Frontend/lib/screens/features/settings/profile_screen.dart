@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/profile_service.dart';
+import '../../../services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../widgets/glass_card.dart';
@@ -18,7 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   String name = "";
   String email = "";
   String? imagePath;
+  bool _isLoadingName = true;
   late AnimationController _animationController;
+  final ApiService _apiService = ApiService();
 
   final List<String> _avatars = [
     'assets/images/avatars/boy.png',
@@ -43,14 +46,22 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   }
 
   Future<void> _loadProfile() async {
-    final n = await ProfileService.getName();
     final e = await ProfileService.getEmail();
     final img = await ProfileService.getImagePath();
-
+    // Fetch name from backend so it's per-account, not device-local
+    String fetchedName = "Habitster User";
+    try {
+      final profileData = await _apiService.getUserProfile();
+      fetchedName = profileData['name'] ?? profileData['userName'] ?? e.split('@')[0];
+    } catch (_) {
+      // Fallback to locally stored name if API fails
+      fetchedName = await ProfileService.getName();
+    }
     setState(() {
-      name = n;
+      name = fetchedName;
       email = e;
       imagePath = img;
+      _isLoadingName = false;
     });
   }
 
@@ -125,7 +136,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
 
     if (newName != null && newName.isNotEmpty) {
-      await ProfileService.setName(newName);
+      try {
+        // Save per-account name on the backend (Appwrite)
+        await _apiService.updateUserName(newName);
+      } catch (_) {
+        // Silently fallback to device-local storage if server update fails
+      }
+      await ProfileService.setName(newName); // also update local cache
       setState(() => name = newName);
     }
   }

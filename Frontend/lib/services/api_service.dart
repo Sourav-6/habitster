@@ -511,6 +511,24 @@ class ApiService {
     }
   }
 
+  /// Updates the user's display name on the backend (Appwrite per-account).
+  Future<void> updateUserName(String name) async {
+    final Uri uri = Uri.parse('$_baseUrl/profile/name');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        uri,
+        headers: headers,
+        body: json.encode({'name': name}),
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update name (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> showHabit(String habitId) async {
     final Uri showUri = Uri.parse('$_baseUrl/habits/$habitId/show');
     try {
