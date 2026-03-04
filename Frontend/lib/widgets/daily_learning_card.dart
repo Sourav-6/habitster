@@ -424,7 +424,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: 'Brain Fuel  ',
+                                  text: 'Learning Card  ',
                                   style: GoogleFonts.poppins(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
