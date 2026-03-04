@@ -1111,6 +1111,39 @@ app.put("/api/habits/:habitId/show", authMiddleware, async (req, res) => {
   }
 });
 
+// NEW: Toggle Favorite Habit Endpoint
+app.put("/api/habits/:habitId/favorite", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { habitId } = req.params;
+    const { isFavorite } = req.body; // Expect boolean
+
+    // Verify ownership
+    const habit = await databases.getDocument(
+      DATABASE_ID,
+      HABITS_COLLECTION_ID,
+      habitId
+    );
+    if (habit.userId !== userId) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const updatedHabit = await databases.updateDocument(
+      DATABASE_ID,
+      HABITS_COLLECTION_ID,
+      habitId,
+      { isFavorite: isFavorite } // Set isFavorite
+    );
+    console.log(`Habit ${habitId} favorite status set to ${isFavorite}.`);
+    res.status(200).json(updatedHabit);
+  } catch (error) {
+    console.error(`Error toggling favorite for habit ${req.params.habitId}:`, error);
+    res
+      .status(500)
+      .json({ message: "Failed to toggle favorite habit", error: error.message });
+  }
+});
+
 // NEW: Get Hidden Habits Endpoint
 app.get("/api/habits/hidden", authMiddleware, async (req, res) => {
   try {

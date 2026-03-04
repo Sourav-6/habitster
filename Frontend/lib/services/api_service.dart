@@ -492,6 +492,25 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> toggleFavoriteHabit(String habitId, bool isFavorite) async {
+    final Uri favoriteUri = Uri.parse('$_baseUrl/habits/$habitId/favorite');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.put(
+        favoriteUri,
+        headers: headers,
+        body: json.encode({'isFavorite': isFavorite}),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to toggle favorite: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> showHabit(String habitId) async {
     final Uri showUri = Uri.parse('$_baseUrl/habits/$habitId/show');
     try {

@@ -5,6 +5,7 @@ class ProfileService {
   static const _emailKey = "profile_email";
   static const _imageKey = "profile_image";
   static const _themeKey = "profile_theme_dark";
+  static const _langKey = "profile_language";
 
   // ---------- Name ----------
   static Future<String> getName() async {
@@ -48,5 +49,16 @@ class ProfileService {
   static Future<void> setDarkMode(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, value);
+  }
+
+  // ---------- Language ----------
+  static Future<String> getLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_langKey) ?? "English";
+  }
+
+  static Future<void> setLanguage(String lang) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_langKey, lang);
   }
 }

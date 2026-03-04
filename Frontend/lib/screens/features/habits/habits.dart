@@ -8,6 +8,7 @@ import 'habit_detail.dart';
 import '../../../services/api_service.dart';
 import '../../../widgets/habitster_loading_widget.dart';
 import 'hidden_habits.dart';
+import '../../../widgets/glass_card.dart';
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -243,12 +244,12 @@ class _HabitsScreenState extends State<HabitsScreen>
               end: Alignment.bottomRight,
               colors: Theme.of(context).brightness == Brightness.dark
                   ? [
-                      const Color(0xFF121212), // Deep dark
-                      const Color(0xFF1E1E2C), // Dark blue/purple
+                      const Color(0xFF0A0A12),
+                      const Color(0xFF121220),
                     ]
                   : [
-                      const Color(0xFFF9F9FF), // Very light purple/white
-                      const Color(0xFFF0F8FF), // Very light blue
+                      const Color(0xFFFAFAFF),
+                      const Color(0xFFF5F9FF),
                     ],
             ),
           ),
@@ -258,89 +259,59 @@ class _HabitsScreenState extends State<HabitsScreen>
         AnimatedBuilder(
           animation: _animationController,
           builder: (context, child) {
+            final value = _animationController.value;
             return Stack(
               children: [
-                // Primary Pink gradient blob
+                // Primary Pink gradient blob - Top Left
                 Positioned(
-                  top: -60 +
-                      30 * math.sin(_animationController.value * math.pi * 0.7),
-                  left: -40 +
-                      20 * math.cos(_animationController.value * math.pi * 0.5),
+                  top: -100 + 40 * math.sin(value * math.pi * 0.8),
+                  left: -80 + 30 * math.cos(value * math.pi * 0.6),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFFF0066).withAlpha(50), // Pink
-                      const Color(0xFFFF4081).withAlpha(30), // Lighter pink
+                      const Color(0xFFFF0066).withValues(alpha: 0.25),
+                      const Color(0xFFFF4081).withValues(alpha: 0.1),
                     ],
-                    350 +
-                        40 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.6),
+                    450 + 60 * math.sin(value * math.pi * 0.7),
                   ),
                 ),
 
-                // Accent Peach gradient blob
+                // Accent Orange/Peach blob - Bottom Right
                 Positioned(
-                  bottom: MediaQuery.of(context).size.height / 5,
-                  right: -80 +
-                      40 * math.cos(_animationController.value * math.pi * 0.4),
+                  bottom: -50 + 40 * math.sin(value * math.pi * 0.5),
+                  right: -100 + 50 * math.cos(value * math.pi * 0.7),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFFF9E80).withAlpha(40), // Peach
-                      const Color(0xFFFFE57F).withAlpha(20), // Soft yellow
+                      const Color(0xFFFF9E80).withValues(alpha: 0.2),
+                      const Color(0xFFFFCCBC).withValues(alpha: 0.05),
                     ],
-                    300 +
-                        50 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.5),
+                    400 + 70 * math.cos(value * math.pi * 0.6),
                   ),
                 ),
 
-                // Soft Purple blob
+                // Soft Purple blob - Center Left
                 Positioned(
-                  top: MediaQuery.of(context).size.height / 3,
-                  left: MediaQuery.of(context).size.width / 4 -
-                      50 +
-                      60 * math.sin(_animationController.value * math.pi * 0.3),
+                  top: MediaQuery.of(context).size.height * 0.4 +
+                      80 * math.sin(value * math.pi * 0.4),
+                  left: -120 + 60 * math.cos(value * math.pi * 0.3),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFD500F9).withAlpha(15), // Purple
-                      const Color(0xFFE040FB).withAlpha(10), // Light purple
+                      const Color(0xFFD500F9).withValues(alpha: 0.12),
+                      const Color(0xFF7C4DFF).withValues(alpha: 0.04),
                     ],
-                    250 +
-                        40 *
-                            math.cos(
-                                _animationController.value * math.pi * 0.6),
+                    350 + 50 * math.sin(value * math.pi * 0.5),
                   ),
                 ),
 
-                // Secondary Pink blob
+                // Secondary Blue/Cyan blob - Top Right
                 Positioned(
-                  top: MediaQuery.of(context).size.height * 0.6,
-                  left: MediaQuery.of(context).size.width * 0.6,
+                  top: 50 + 60 * math.cos(value * math.pi * 0.4),
+                  right: -60 + 40 * math.sin(value * math.pi * 0.6),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFFF0066).withAlpha(25), // Pink
-                      const Color(0xFFFF80AB).withAlpha(15), // Light pink
+                      const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                      const Color(0xFF0288D1).withValues(alpha: 0.02),
                     ],
-                    180 +
-                        20 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.8),
-                  ),
-                ),
-
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.2,
-                  left: MediaQuery.of(context).size.width * 0.6,
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFF64FFDA).withAlpha(20), // Teal
-                      const Color(0xFF1DE9B6).withAlpha(15), // Light teal
-                    ],
-                    80 +
-                        15 *
-                            math.cos(
-                                _animationController.value * math.pi * 0.7),
+                    280 + 40 * math.cos(value * math.pi * 0.8),
                   ),
                 ),
               ],
@@ -350,13 +321,11 @@ class _HabitsScreenState extends State<HabitsScreen>
 
         // Glassmorphic overlay
         BackdropFilter(
-          filter: ImageFilter.blur(
-              sigmaX: 70,
-              sigmaY: 70), // Softer blur
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), // Maximum luxurious blur
           child: Container(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.black.withAlpha(100)
-                : Colors.white.withAlpha(80),
+                ? Colors.black.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -385,15 +354,16 @@ class _HabitsScreenState extends State<HabitsScreen>
   Widget _buildHabitsList() {
     return ListView.builder(
       itemCount: _habits.length,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         final habit = _habits[index];
         // Use a dedicated builder function for the tile
-        return _buildHabitTile(habit);
+        return _buildHabitTile(habit, index);
       },
     );
   }
 
-  Widget _buildHabitTile(dynamic habit) {
+  Widget _buildHabitTile(dynamic habit, int index) {
     final String habitId = habit['\$id'];
     final String habitName = habit['habitName'] ?? 'No Name';
     final int currentStreak = habit['currentStreak'] ?? 0;
@@ -426,32 +396,21 @@ class _HabitsScreenState extends State<HabitsScreen>
     }
     // --- End NEW ---
 
-    return Container(
+    return GlassCard(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: BoxDecoration(
-        color: isCompletedToday 
-            ? Theme.of(context).cardColor.withAlpha(150) // More transparent when completed
-            : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: isCompletedToday 
-                ? Colors.transparent 
-                : (Theme.of(context).brightness == Brightness.dark 
-                    ? Colors.black.withAlpha(100) 
-                    : const Color(0xFFFF0066).withAlpha(15)),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(
-          color: isCompletedToday 
-              ? Colors.grey.withAlpha(80) 
-              : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withAlpha(20) : Colors.transparent),
-          width: 1,
-        ),
-      ),
+      borderRadius: 20,
+      blur: isCompletedToday ? 5 : 15,
+      borderColor: isCompletedToday 
+          ? Colors.grey.withValues(alpha: 0.1) 
+          : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.4)),
+      gradient: isCompletedToday 
+          ? LinearGradient(
+              colors: [
+                Colors.grey.withValues(alpha: 0.05),
+                Colors.grey.withValues(alpha: 0.02),
+              ],
+            )
+          : null,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -612,7 +571,7 @@ class _HabitsScreenState extends State<HabitsScreen>
           ),
         ),
       ),
-    ).animate().fade(duration: 600.ms).slideX(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+    ).animate().fade(duration: 600.ms, delay: (index * 100).ms).slideX(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 
   // --- End UPDATED ---

@@ -1,7 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../services/profile_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../widgets/glass_card.dart';
+import 'dart:ui';
+import 'dart:math' as math;
+import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,15 +14,32 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
   String name = "";
   String email = "";
   String? imagePath;
+  late AnimationController _animationController;
+
+  final List<String> _avatars = [
+    'assets/images/avatars/boy.png',
+    'assets/images/avatars/girl.png',
+    'assets/images/avatars/robot.png',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -38,22 +59,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final newName = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Edit name"),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
+      builder: (_) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Material(
+            color: Colors.transparent,
+            child: GlassCard(
+              padding: const EdgeInsets.all(24),
+              borderRadius: 24,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Edit Name",
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: GoogleFonts.poppins(color: Theme.of(context).textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      hintText: "Enter your name",
+                      hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text("Cancel", style: GoogleFonts.poppins(color: Colors.grey)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, controller.text.trim()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: Text("Save", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text("Save"),
-          ),
-        ],
       ),
     );
 
@@ -63,55 +130,217 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.gallery);
-    if (img == null) return;
+  Future<void> _selectAvatar(String path) async {
+    await ProfileService.setImagePath(path);
+    setState(() => imagePath = path);
+  }
 
-    await ProfileService.setImagePath(img.path);
-    setState(() => imagePath = img.path);
+  Widget _buildGlassmorphicBackground() {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: Theme.of(context).brightness == Brightness.dark
+                  ? [const Color(0xFF0A0A12), const Color(0xFF121220)]
+                  : [const Color(0xFFFAFAFF), const Color(0xFFF5F9FF)],
+            ),
+          ),
+        ),
+        AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            final value = _animationController.value;
+            return Stack(
+              children: [
+                Positioned(
+                  top: -50 + 30 * math.sin(value * math.pi * 0.7),
+                  right: -60 + 40 * math.cos(value * math.pi * 0.5),
+                  child: _buildGradientBlob([const Color(0xFF7C4DFF).withValues(alpha: 0.15), const Color(0xFFB388FF).withValues(alpha: 0.1)], 400),
+                ),
+                Positioned(
+                  bottom: -100 + 40 * math.sin(value * math.pi * 0.9),
+                  left: -80 + 30 * math.cos(value * math.pi * 0.6),
+                  child: _buildGradientBlob([const Color(0xFFFF0066).withValues(alpha: 0.1), const Color(0xFFFF80AB).withValues(alpha: 0.05)], 450),
+                ),
+              ],
+            );
+          },
+        ),
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+          child: Container(color: Colors.transparent),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGradientBlob(List<Color> colors, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        shape: BoxShape.circle,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Profile")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey[300],
-                backgroundImage:
-                    imagePath != null ? FileImage(File(imagePath!)) : null,
-                child: imagePath == null
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: _editName,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        iconTheme: IconThemeData(color: Theme.of(context).textTheme.bodyLarge?.color),
+        title: Text(
+          "Profile",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          _buildGlassmorphicBackground(),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 20),
+                  
+                  // Main Profile Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(32),
+                    borderRadius: 24,
+                    child: Column(
+                      children: [
+                        _buildAvatarPreview(),
+                        const SizedBox(height: 24),
+                        _buildEditableName(),
+                        Text(
+                          email,
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fade().scale(duration: 400.ms, curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 32),
+
+                  // Avatar Selection Row
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8, bottom: 16),
+                      child: Text(
+                        "CHOOSE YOUR CHARACTER",
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.5)
+                              : Theme.of(context).primaryColor.withValues(alpha: 0.7),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.edit, size: 16),
+                  
+                  SizedBox(
+                    height: 100,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _avatars.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        final path = _avatars[index];
+                        final isSelected = imagePath == path;
+                        return GestureDetector(
+                          onTap: () => _selectAvatar(path),
+                          child: AnimatedContainer(
+                            duration: 200.ms,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 36,
+                              backgroundColor: Colors.white10,
+                              backgroundImage: AssetImage(path),
+                            ),
+                          ),
+                        ).animate().fade(delay: (index * 100).ms).slideX(begin: 0.5);
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(email, style: const TextStyle(color: Colors.grey)),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarPreview() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.5)],
         ),
+      ),
+      child: CircleAvatar(
+        radius: 60,
+        backgroundColor: Theme.of(context).cardColor,
+        backgroundImage: imagePath != null && imagePath!.startsWith('assets')
+            ? AssetImage(imagePath!) as ImageProvider
+            : (imagePath != null ? FileImage(File(imagePath!)) as ImageProvider : null),
+        child: imagePath == null ? const Icon(Icons.person, size: 60) : null,
+      ),
+    );
+  }
+
+  Widget _buildEditableName() {
+    return GestureDetector(
+      onTap: _editName,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            name,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(
+            Icons.edit_rounded, 
+            size: 18, 
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white70 
+                : Theme.of(context).primaryColor
+          ),
+        ],
       ),
     );
   }

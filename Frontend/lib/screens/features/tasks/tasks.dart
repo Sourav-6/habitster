@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'create_task.dart';
 import '../../../services/api_service.dart';
 import '../../../widgets/habitster_loading_widget.dart';
+import '../../../widgets/glass_card.dart';
 
 class TasksScreen extends StatefulWidget {
   // Changed to StatefulWidget
@@ -149,7 +150,7 @@ class _TasksScreenState extends State<TasksScreen>
     final List<dynamic> upcomingTasks = [];
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
-    final todayEnd = todayStart.add(const Duration(days: 1));
+
 
     for (final task in _tasks) {
       if (task['dueDate'] != null) {
@@ -364,14 +365,17 @@ class _TasksScreenState extends State<TasksScreen>
           ),
           ..._completedTasks.map((task) {
             final String title = task['taskName'] ?? task['title'] ?? 'Untitled';
-            return Container(
+            return GlassCard(
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor.withAlpha(220),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: Colors.green.withAlpha(100), width: 1.5),
+              borderRadius: 16,
+              blur: 8,
+              borderColor: Colors.green.withValues(alpha: 0.2),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.green.withValues(alpha: 0.05),
+                  Colors.green.withValues(alpha: 0.02),
+                ],
               ),
               child: Row(
                 children: [
@@ -400,118 +404,6 @@ class _TasksScreenState extends State<TasksScreen>
 
   // lib/screens/features/tasks/tasks.dart
 
-  // --- UPDATED: Helper widget to build a task ListTile with completion logic ---
-  Widget _buildTaskTile(dynamic task) {
-    final DateTime? dueDate = task['dueDate'] != null
-        ? DateTime.parse(task['dueDate']).toLocal()
-        : null;
-    final String formattedDate = dueDate != null
-        ? '${dueDate.day}/${dueDate.month}/${dueDate.year}' // Simple dd/MM/yyyy format
-        : 'No due date';
-
-    // Get task properties needed for completion logic
-    final String taskId = task['\$id']; // Appwrite document ID
-    final bool isRecurring = task['isRecurring'] ?? false;
-    final int? recurrenceDays = task['recurrenceDays'];
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: Checkbox(
-          value: false, // Checkbox is always unchecked initially when displayed
-          onChanged: (bool? value) async {
-            // Make onChanged async
-            if (value == true) {
-              // Only proceed if checkbox is checked
-              // Show a temporary loading state (optional)
-              // You could disable the checkbox or show an overlay here
-
-              try {
-                if (!isRecurring) {
-                  // --- One-time task: Delete ---
-                  await _apiService.deleteTask(taskId);
-                  if (mounted) {
-                    // Check if widget is still mounted
-                    setState(() {
-                      _tasks.removeWhere(
-                          (t) => t['\$id'] == taskId); // Remove from list
-                    });
-                  }
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Task completed and removed!'),
-                          backgroundColor: Colors.green),
-                    );
-                  }
-                } else if (recurrenceDays != null && recurrenceDays > 0) {
-                  // --- Recurring task: Update due date ---
-                  if (dueDate != null) {
-                    final nextDueDate =
-                        dueDate.add(Duration(days: recurrenceDays));
-                    final updatedTask = await _apiService.updateTask(taskId, {
-                      'dueDate': nextDueDate.toIso8601String(),
-                    });
-                    if (mounted) {
-                      // Check if widget is still mounted
-                      setState(() {
-                        // Find the index and update the task in the list
-                        final index =
-                            _tasks.indexWhere((t) => t['\$id'] == taskId);
-                        if (index != -1) {
-                          _tasks[index] = updatedTask;
-                          // We might need to re-sort or re-filter the list here
-                          // For now, just updating in place. A re-fetch might be simpler.
-                        }
-                        // OPTIONAL: Re-fetch all tasks to ensure correct sorting
-                        _fetchTasks();
-                      });
-                    }
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                'Task completed! Next due on ${nextDueDate.day}/${nextDueDate.month}/${nextDueDate.year}')),
-                      );
-                    }
-                  } else {
-                    throw Exception(
-                        'Due date is null for recurring task $taskId');
-                  }
-                } else {
-                  // Handle case where isRecurring is true but recurrenceDays is invalid
-                  throw Exception(
-                      'Invalid recurrence settings for task $taskId');
-                }
-              } catch (e) {
-                if (mounted) {
-                  // Check if widget is still mounted
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Error updating task: $e'),
-                        backgroundColor: Colors.red),
-                  );
-                }
-              } finally {
-                // Hide loading state if you showed one
-              }
-            }
-          },
-          activeColor: const Color(0xFFFF4747), // Use task primary color
-        ),
-        title: Text(task['taskName'] ?? 'No Name',
-            style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: task['note'] != null && task['note']!.isNotEmpty
-            ? Text(task['note'], maxLines: 1, overflow: TextOverflow.ellipsis)
-            : null,
-        trailing: Text(formattedDate),
-      ),
-    );
-  }
-  // --- End UPDATED ---
-
   Widget _buildGlassmorphicBackground() {
     return Stack(
       children: [
@@ -523,12 +415,12 @@ class _TasksScreenState extends State<TasksScreen>
               end: Alignment.bottomRight,
               colors: Theme.of(context).brightness == Brightness.dark
                   ? [
-                      const Color(0xFF121212), // Deep dark
-                      const Color(0xFF1E1E2C), // Dark blue/purple
+                      const Color(0xFF0A0A12),
+                      const Color(0xFF121220),
                     ]
                   : [
-                      const Color(0xFFF9F9FF), // Very light purple/white
-                      const Color(0xFFF0F8FF), // Very light blue
+                      const Color(0xFFFAFAFF),
+                      const Color(0xFFF5F9FF),
                     ],
             ),
           ),
@@ -538,89 +430,59 @@ class _TasksScreenState extends State<TasksScreen>
         AnimatedBuilder(
           animation: _animationController,
           builder: (context, child) {
+            final value = _animationController.value;
             return Stack(
               children: [
-                // Pink gradient blob
+                // Primary Pink gradient blob - Top Left
                 Positioned(
-                  top: -100 +
-                      50 * math.sin(_animationController.value * math.pi * 0.7),
-                  right: -80 +
-                      40 * math.cos(_animationController.value * math.pi * 0.5),
+                  top: -100 + 40 * math.sin(value * math.pi * 0.8),
+                  left: -80 + 30 * math.cos(value * math.pi * 0.6),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFFF0066).withAlpha(30), // Pink
-                      const Color(0xFFFF9E80).withAlpha(20), // Light orange
+                      const Color(0xFFFF0066).withValues(alpha: 0.25),
+                      const Color(0xFFFF4081).withValues(alpha: 0.1),
                     ],
-                    250 +
-                        50 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.6),
+                    450 + 60 * math.sin(value * math.pi * 0.7),
                   ),
                 ),
 
-                // Yellow-purple gradient blob
+                // Accent Orange/Peach blob - Bottom Right
                 Positioned(
-                  bottom: MediaQuery.of(context).size.height / 4,
-                  left: -120 +
-                      60 * math.cos(_animationController.value * math.pi * 0.4),
+                  bottom: -50 + 40 * math.sin(value * math.pi * 0.5),
+                  right: -100 + 50 * math.cos(value * math.pi * 0.7),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFf8e356).withAlpha(25), // Yellow
-                      const Color(0xFF6A11CB).withAlpha(15), // Purple
+                      const Color(0xFFFF9E80).withValues(alpha: 0.2),
+                      const Color(0xFFFFCCBC).withValues(alpha: 0.05),
                     ],
-                    280 +
-                        60 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.5),
+                    400 + 70 * math.cos(value * math.pi * 0.6),
                   ),
                 ),
 
-                // Blue-cyan gradient blob
+                // Soft Purple blob - Center Left
                 Positioned(
-                  top: MediaQuery.of(context).size.height / 3,
-                  right: MediaQuery.of(context).size.width / 3 -
-                      50 +
-                      70 * math.sin(_animationController.value * math.pi * 0.3),
+                  top: MediaQuery.of(context).size.height * 0.4 +
+                      80 * math.sin(value * math.pi * 0.4),
+                  left: -120 + 60 * math.cos(value * math.pi * 0.3),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFF00CCFF).withAlpha(20), // Cyan
-                      const Color(0xFF2979FF).withAlpha(15), // Blue
+                      const Color(0xFFD500F9).withValues(alpha: 0.12),
+                      const Color(0xFF7C4DFF).withValues(alpha: 0.04),
                     ],
-                    200 +
-                        40 *
-                            math.cos(
-                                _animationController.value * math.pi * 0.6),
+                    350 + 50 * math.sin(value * math.pi * 0.5),
                   ),
                 ),
 
-                // Small decorative blobs
+                // Secondary Blue/Cyan blob - Top Right
                 Positioned(
-                  top: MediaQuery.of(context).size.height * 0.6,
-                  right: MediaQuery.of(context).size.width * 0.7,
+                  top: 50 + 60 * math.cos(value * math.pi * 0.4),
+                  right: -60 + 40 * math.sin(value * math.pi * 0.6),
                   child: _buildGradientBlob(
                     [
-                      const Color(0xFFFF4081).withAlpha(25), // Pink
-                      const Color(0xFFFF80AB).withAlpha(15), // Light pink
+                      const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                      const Color(0xFF0288D1).withValues(alpha: 0.02),
                     ],
-                    100 +
-                        20 *
-                            math.sin(
-                                _animationController.value * math.pi * 0.8),
-                  ),
-                ),
-
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.2,
-                  right: MediaQuery.of(context).size.width * 0.6,
-                  child: _buildGradientBlob(
-                    [
-                      const Color(0xFF64FFDA).withAlpha(20), // Teal
-                      const Color(0xFF1DE9B6).withAlpha(15), // Light teal
-                    ],
-                    80 +
-                        15 *
-                            math.cos(
-                                _animationController.value * math.pi * 0.7),
+                    280 + 40 * math.cos(value * math.pi * 0.8),
                   ),
                 ),
               ],
@@ -630,14 +492,12 @@ class _TasksScreenState extends State<TasksScreen>
 
         // Glassmorphic overlay
         BackdropFilter(
-          filter: ImageFilter.blur(
-              sigmaX: 60,
-              sigmaY: 60), // Increased blur for more aesthetic effect
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), // Maximum luxurious blur
           child: Container(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.black.withAlpha(100)
-                : Colors.white.withAlpha(80),
-          ), // subtle white overlay
+                ? Colors.black.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
@@ -838,23 +698,29 @@ class _AnimatedTaskCardState extends State<AnimatedTaskCard> {
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutBack,
         transform: Matrix4.translationValues(0, _isCompleted ? 20 : 0, 0),
+      child: GlassCard(
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _isCompleted ? const Color(0xFFE8F5E9) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _isCompleted ? Colors.green.withAlpha(100) : Colors.transparent,
-            width: 2,
+        borderRadius: 20,
+        blur: _isCompleted ? 5 : 15,
+        borderColor: _isCompleted 
+            ? Colors.green.withValues(alpha: 0.1) 
+            : Colors.transparent,
+        gradient: _isCompleted 
+            ? LinearGradient(
+                colors: [
+                  Colors.green.withValues(alpha: 0.05),
+                  Colors.green.withValues(alpha: 0.02),
+                ],
+              )
+            : null,
+        shadows: [
+          BoxShadow(
+            color: const Color(0xFF4A00E0).withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF4A00E0).withAlpha(15),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
+        ],
         child: Row(
           children: [
             GestureDetector(
@@ -916,10 +782,11 @@ class _AnimatedTaskCardState extends State<AnimatedTaskCard> {
                 ),
                 child: const Icon(Icons.repeat, size: 16, color: Color(0xFF4A00E0)),
               ),
-          ],
+            ],
+          ),
         ),
       ).animate(target: _isCompleted ? 1 : 0)
-       .shimmer(duration: 400.ms, color: Colors.green.withAlpha(100))
-    ).animate().fade(delay: (widget.index * 100).ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack);
+       .shimmer(duration: 400.ms, color: Colors.green.withValues(alpha: 0.2)),
+    ).animate().fade(delay: (widget.index * 100).ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 }
