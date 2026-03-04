@@ -645,7 +645,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> awardXP(int amount, {String category = 'learning'}) async {
-    final Uri xpUri = Uri.parse('\$_baseUrl/profile/xp');
+    final Uri xpUri = Uri.parse('$_baseUrl/profile/xp');
     try {
       final headers = await _getAuthHeaders();
       final body = json.encode({

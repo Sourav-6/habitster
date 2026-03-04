@@ -1058,96 +1058,115 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildDateTimeline() {
     final now = DateTime.now();
 
-    // Find the previous Sunday to start the week
+    // Find the previous Monday (or Sunday) to anchor the week
     final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+    final dates = List.generate(7, (i) => startOfWeek.add(Duration(days: i)));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final monthLabel = DateFormat('MMMM yyyy').format(now);
 
-    // Generate 7 days starting from Sunday
-    final dates =
-        List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
-
-    return Container(
-      height: 85,
-      width: double.infinity, // Ensure container takes full width
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Theme.of(context).cardColor.withAlpha(230),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13), // 0.05 opacity = 13 alpha
-            blurRadius: 8,
-            spreadRadius: 0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Month header
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            monthLabel,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.getTextColor(context),
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(7, (index) {
-            final date = dates[index];
-            final isSelected = DateUtils.isSameDay(date, _selectedDate);
-            final isToday = DateUtils.isSameDay(date, now);
-
-            return GestureDetector(
-              onTap: () => setState(() => _selectedDate = date),
-              child: Container(
-                width: 42, // Narrower to fix overflow
-                margin: EdgeInsets.symmetric(
-                  horizontal: 1, // Reduced horizontal margin
-                  vertical: isSelected ? 8 : 12,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  gradient: isSelected
-                      ? const LinearGradient(
-                          colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isToday && !isSelected
-                      ? AppColors.primaryColor
-                          .withAlpha(26) // 0.1 opacity = 26 alpha
-                      : null,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      DateFormat('E').format(date).substring(0, 3),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isSelected ? Colors.white : Theme.of(context).textTheme.bodySmall?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      date.day.toString(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isSelected ? Colors.white : AppColors.getTextColor(context),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat('MMM').format(date).substring(0, 3),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isSelected
-                            ? Colors.white.withAlpha(230)
-                            : Theme.of(context).textTheme.bodySmall?.color?.withAlpha(180),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
         ),
-      ),
+
+        // Day cells
+        Container(
+          height: 80,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.3)
+                    : Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: dates.map((date) {
+              final isSelected = DateUtils.isSameDay(date, _selectedDate);
+              final isToday = DateUtils.isSameDay(date, now);
+
+              return GestureDetector(
+                onTap: () => setState(() => _selectedDate = date),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  width: 42,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFF0066), Color(0xFFFF4081)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.transparent,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Day abbreviation
+                      Text(
+                        DateFormat('E').format(date).substring(0, 1),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : (isDark ? Colors.grey[500] : Colors.grey[500]),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Day number
+                      Text(
+                        date.day.toString(),
+                        style: GoogleFonts.poppins(
+                          fontSize: isSelected ? 18 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark ? Colors.white : Colors.black87),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Today dot indicator
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: isToday ? 5 : 0,
+                        height: isToday ? 5 : 0,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFFFF0066),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 }
