@@ -698,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen>
                     DailyLearningCard(
                       onXpGained: () {
                         // Refresh the profile to reflect the new XP and Level in the header
-                        _fetchProfileData();
+                        _loadProfile();
                       },
                     ).animate().fade(duration: 800.ms, delay: 400.ms).slideY(begin: 0.1, end: 0),
                     
