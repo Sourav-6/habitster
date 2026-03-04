@@ -230,7 +230,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
                     value: _progress,
                     backgroundColor: Colors.grey.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(int.parse(_todaysTopic['themeColor']!))
+                      Color(int.parse(_todaysTopic['themeColor']!.replaceFirst('0x', ''), radix: 16))
                     ),
                     minHeight: 8,
                     borderRadius: BorderRadius.circular(10),
@@ -253,7 +253,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = Color(int.parse(_todaysTopic['themeColor']!));
+    final themeColor = Color(int.parse(_todaysTopic['themeColor']!.replaceFirst('0x', ''), radix: 16));
     
     return RepaintBoundary( // Avoid rebuilding the whole dashboard during timer tick
       child: Container(
