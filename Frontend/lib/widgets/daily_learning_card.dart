@@ -380,7 +380,7 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 16),
-        height: _isReading ? 420 : 100,
+        height: _isReading ? 420 : 76,
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
@@ -403,35 +403,33 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
                 child: InkWell(
                   onTap: _startReading,
                   borderRadius: BorderRadius.circular(24),
-                  child: Padding(
+                    child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 16),
+                        horizontal: 14, vertical: 10),
                     child: Row(
                       children: [
-                        // Left icon
+                        // Left icon — smaller
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                themeColor.withValues(
-                                    alpha: isDark ? 0.3 : 0.2),
-                                themeColor.withValues(
-                                    alpha: isDark ? 0.1 : 0.05),
+                                themeColor.withValues(alpha: isDark ? 0.3 : 0.2),
+                                themeColor.withValues(alpha: isDark ? 0.1 : 0.05),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: themeColor.withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
                           child: Text(_todaysTopic['icon'] as String,
-                              style: const TextStyle(fontSize: 26)),
+                              style: const TextStyle(fontSize: 20)),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         // Text
                         Expanded(
                           child: Column(
@@ -440,13 +438,13 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.auto_awesome_rounded,
-                                      size: 14, color: themeColor),
-                                  const SizedBox(width: 5),
+                                  Icon(Icons.bolt_rounded,
+                                      size: 13, color: themeColor),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'Daily Learning  •  +10 XP',
+                                    "Brain Fuel  •  +10 XP",
                                     style: GoogleFonts.poppins(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                       color: isDark
                                           ? Colors.grey[400]
@@ -456,10 +454,10 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
+                               Text(
                                 _todaysTopic['title'] as String,
                                 style: GoogleFonts.poppins(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context)
                                       .textTheme
