@@ -26,6 +26,7 @@ const account = new Appwrite.Account(client);
 const users = new Appwrite.Users(client);
 const { nanoid } = require("nanoid");
 const MOODS_COLLECTION_ID = "user_moods";
+const ISLAND_COLLECTION_ID = "user_islands";
 
 const databases = new Appwrite.Databases(client);
 
@@ -1526,6 +1527,119 @@ app.get("/api/mood/today", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Error fetching mood:", error);
     res.status(500).json({ message: "Failed to fetch mood", error: error.message });
+  }
+});
+
+// --- Island Gamification API ---
+
+// Get User's Island State
+app.get("/api/island", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const existingIslands = await databases.listDocuments(
+      DATABASE_ID,
+      ISLAND_COLLECTION_ID,
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.limit(1)
+      ]
+    );
+
+    if (existingIslands.total > 0) {
+      return res.status(200).json(existingIslands.documents[0]);
+    } else {
+      // Create a fresh island for new user
+      const newIsland = await databases.createDocument(
+        DATABASE_ID,
+        ISLAND_COLLECTION_ID,
+        Appwrite.ID.unique(),
+        {
+          userId: userId,
+          trees: 0,
+          houses: 0,
+          unlockedAreas: 0,
+          decayLevel: 0
+        }
+      );
+      return res.status(200).json(newIsland);
+    }
+  } catch (error) {
+    console.error("Error fetching island:", error);
+    res.status(500).json({ message: "Failed to fetch island", error: error.message });
+  }
+});
+
+// Update User's Island State
+app.post("/api/island/update", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { action, amount = 1 } = req.body;
+    // action: 'addTree', 'addHouse', 'unlockArea', 'addDecay', 'removeDecay'
+
+    if (!action) {
+      return res.status(400).json({ message: "Action is required" });
+    }
+
+    const existingIslands = await databases.listDocuments(
+      DATABASE_ID,
+      ISLAND_COLLECTION_ID,
+      [
+        Appwrite.Query.equal("userId", userId),
+        Appwrite.Query.limit(1)
+      ]
+    );
+
+    let docId, currentData;
+
+    if (existingIslands.total > 0) {
+      docId = existingIslands.documents[0].$id;
+      currentData = existingIslands.documents[0];
+    } else {
+      // Create base island first
+      const newIsland = await databases.createDocument(
+        DATABASE_ID,
+        ISLAND_COLLECTION_ID,
+        Appwrite.ID.unique(),
+        {
+          userId: userId,
+          trees: 0,
+          houses: 0,
+          unlockedAreas: 0,
+          decayLevel: 0
+        }
+      );
+      docId = newIsland.$id;
+      currentData = newIsland;
+    }
+
+    let updates = {};
+    if (action === 'addTree') {
+      updates.trees = currentData.trees + amount;
+      if (currentData.decayLevel > 0) updates.decayLevel = Math.max(0, currentData.decayLevel - amount); // Good habits reduce decay
+    } else if (action === 'addHouse') {
+      updates.houses = currentData.houses + amount;
+    } else if (action === 'unlockArea') {
+      updates.unlockedAreas = currentData.unlockedAreas + amount;
+    } else if (action === 'addDecay') {
+      updates.decayLevel = currentData.decayLevel + amount;
+    } else if (action === 'removeDecay') {
+      updates.decayLevel = Math.max(0, currentData.decayLevel - amount);
+    } else {
+      return res.status(400).json({ message: "Invalid action type" });
+    }
+
+    const updatedDoc = await databases.updateDocument(
+      DATABASE_ID,
+      ISLAND_COLLECTION_ID,
+      docId,
+      updates
+    );
+
+    return res.status(200).json(updatedDoc);
+  } catch (error) {
+    console.error("Error updating island:", error);
+    res.status(500).json({ message: "Failed to update island", error: error.message });
   }
 });
 

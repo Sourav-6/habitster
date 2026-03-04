@@ -16,6 +16,7 @@ import '../../../models/user_profile.dart';
 import '../../../widgets/habitster_loading_widget.dart';
 import '../profile/avatar_selection_screen.dart';
 import '../../../widgets/mood_tracker.dart';
+import '../island/island_screen.dart';
 
 // App theme colors
 class AppColors {
@@ -663,30 +664,80 @@ class _HomeScreenState extends State<HomeScreen>
 
           // Main content
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProfileHeader(),
-                  _buildLevelSection(),
-                  _buildStatsSection(),
-                  const SizedBox(height: 10),
-                  _buildDateTimeline().animate().fade(duration: 600.ms, delay: 200.ms).slideX(begin: 0.05, end: 0),
-                  const SizedBox(height: 10),
-                  _isLoadingMood 
-                      ? const SizedBox.shrink() 
-                      : MoodTrackerCard(
-                          initialMood: _todayMood,
-                          onMoodSelected: (mood) {
-                            setState(() {
-                              _todayMood = mood;
-                            });
-                          },
-                        ).animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
-                  const SizedBox(height: 20),
-                  // Add your home screen content here
-                ],
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Moved Calendar to the very top
+                    _buildDateTimeline().animate().fade(duration: 500.ms).slideX(begin: 0.05, end: 0),
+                    const SizedBox(height: 24),
+                    
+                    _buildProfileHeader(),
+                    _buildLevelSection(),
+                    _buildStatsSection(),
+                    const SizedBox(height: 16),
+                    
+                    _isLoadingMood 
+                        ? const SizedBox.shrink() 
+                        : MoodTrackerCard(
+                            initialMood: _todayMood,
+                            onMoodSelected: (mood) {
+                              setState(() {
+                                _todayMood = mood;
+                              });
+                            },
+                          ).animate().fade(duration: 700.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Travel to Island Button
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const IslandScreen()));
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4DD0E1), Color(0xFF00BCD4)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00BCD4).withOpacity(0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            )
+                          ]
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('🌴', style: TextStyle(fontSize: 24)),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Travel to My Island',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                          ],
+                        ),
+                      ),
+                    ).animate().fade(duration: 800.ms, delay: 400.ms).slideY(begin: 0.1, end: 0),
+
+                    // Extra bottom padding to ensure it scrolls comfortably past the bottom nav bar
+                    const SizedBox(height: 80),
+                  ],
+                ),
               ),
             ),
           ),

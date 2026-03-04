@@ -219,6 +219,45 @@ class ApiService {
     }
   }
 
+  // --- Habitster Island API ---
+
+  Future<Map<String, dynamic>> getIslandState() async {
+    final Uri uri = Uri.parse('$_baseUrl/island');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load island state (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateIslandState(String action, {int amount = 1}) async {
+    final Uri uri = Uri.parse('$_baseUrl/island/update');
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: json.encode({
+          'action': action,
+          'amount': amount,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to update island state (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error or server unreachable: $e');
+    }
+  }
+
   // lib/services/api_service.dart
 
 // ... (getTasks function is above this)

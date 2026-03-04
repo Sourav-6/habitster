@@ -78,6 +78,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         notes: notes,
       );
 
+      // --- NEW: Island Gamification Update ---
+      try {
+        final difficulty = widget.habit['difficulty']?.toString().toLowerCase() ?? 'medium';
+        if (difficulty == 'hard') {
+           await _apiService.updateIslandState('addHouse');
+        } else if (difficulty == 'medium') {
+           await _apiService.updateIslandState('addTree', amount: 2);
+        } else {
+           await _apiService.updateIslandState('addTree', amount: 1);
+        }
+      } catch (islandErr) {
+        debugPrint('Island Gamification update failed: \$islandErr');
+      }
+      // --- End NEW ---
+
       if (mounted) {
         final gamification = updatedHabit['gamification'];
         if (gamification != null) {
