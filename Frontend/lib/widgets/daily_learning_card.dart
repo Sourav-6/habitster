@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -85,9 +86,33 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
     _checkDoneToday();
   }
 
+  // Returns a user-scoped pref key so each account has its own daily gate
+  Future<String> _prefKeyForUser() async {
+    final token = await _apiService.getToken();
+    String userId = 'guest';
+    if (token != null) {
+      try {
+        // JWT is header.payload.signature — payload is base64url encoded
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          final payloadStr = parts[1];
+          // Base64url → base64 padding
+          final normalized = base64Url.normalize(payloadStr);
+          final payloadJson = utf8.decode(base64Url.decode(normalized));
+          final payload = json.decode(payloadJson) as Map<String, dynamic>;
+          userId = (payload['userId'] ?? payload['sub'] ?? 'guest').toString();
+        }
+      } catch (_) {
+        // Fallback — 'guest' key used if token parsing fails
+      }
+    }
+    return 'learning_card_completed_date_$userId';
+  }
+
   Future<void> _checkDoneToday() async {
+    final prefKey = await _prefKeyForUser();
     final prefs = await SharedPreferences.getInstance();
-    final String? storedDate = prefs.getString(_prefKey);
+    final String? storedDate = prefs.getString(prefKey);
     final String todayDate = _todayDateString();
     if (mounted) {
       setState(() {
@@ -98,8 +123,9 @@ class _DailyLearningCardState extends State<DailyLearningCard> {
   }
 
   Future<void> _markDoneToday() async {
+    final prefKey = await _prefKeyForUser();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefKey, _todayDateString());
+    await prefs.setString(prefKey, _todayDateString());
   }
 
   String _todayDateString() {
