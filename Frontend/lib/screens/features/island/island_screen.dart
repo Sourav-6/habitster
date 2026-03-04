@@ -11,22 +11,36 @@ class IslandScreen extends StatefulWidget {
   State<IslandScreen> createState() => _IslandScreenState();
 }
 
-class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderStateMixin {
+class _IslandScreenState extends State<IslandScreen>
+    with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   bool _isLoading = true;
   Map<String, dynamic>? _islandData;
+
   late AnimationController _pulseController;
+  late AnimationController _cloudController;
+  late AnimationController _waveController;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _pulseController = AnimationController(
+        vsync: this, duration: const Duration(seconds: 2))
+      ..repeat(reverse: true);
+    _cloudController = AnimationController(
+        vsync: this, duration: const Duration(seconds: 20))
+      ..repeat();
+    _waveController = AnimationController(
+        vsync: this, duration: const Duration(seconds: 3))
+      ..repeat(reverse: true);
     _loadIslandState();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _cloudController.dispose();
+    _waveController.dispose();
     super.dispose();
   }
 
@@ -40,22 +54,21 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
         });
       }
     } catch (e) {
-      debugPrint('Error loading island: \$e');
+      debugPrint('Error loading island: $e');
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
 
-  // Helper widget to build the "faces" of the 3D block
-  Widget _buildIsometricBlock(Color topColor, Color rightColor, Color leftColor, Widget child) {
-    const double blockHeight = 15.0; // The extrusion depth
-    
+  // ── Isometric block builder ─────────────────────────────────────────────
+  Widget _buildIsometricBlock(
+      Color topColor, Color rightColor, Color leftColor, Widget child) {
+    const double blockHeight = 14.0;
+
     return Stack(
       children: [
-        // Simulated Right Face
+        // Right face
         Positioned(
           top: blockHeight,
           right: -blockHeight,
@@ -63,12 +76,11 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
           left: blockHeight,
           child: Transform(
             alignment: Alignment.center,
-            transform: Matrix4.skewY(-0.5), // Skew to form the side
+            transform: Matrix4.skewY(-0.5),
             child: Container(color: rightColor),
           ),
         ),
-        
-        // Simulated Left Face
+        // Left face
         Positioned(
           top: blockHeight,
           bottom: -blockHeight,
@@ -76,25 +88,27 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
           right: 0,
           child: Container(
             color: leftColor,
-            margin: const EdgeInsets.only(top: blockHeight), // offset down
-            child: Align(alignment: Alignment.centerLeft, child: Container(width: blockHeight, color: leftColor)), // Hacky quick left depth
+            margin: const EdgeInsets.only(top: blockHeight),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(width: blockHeight, color: leftColor),
+            ),
           ),
         ),
-
-        // The Top Face (The actual tile surface)
+        // Top face
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
               color: topColor,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
             ),
             child: Center(
-              // Counter-rotate the children so they stand UP off the flat map
               child: Transform(
                 alignment: Alignment.center,
                 transform: Matrix4.identity()
-                  ..rotateZ(math.pi / 4) // counter Z rotate
-                  ..rotateX(-math.pi / 3), // counter X tilt
+                  ..rotateZ(math.pi / 4)
+                  ..rotateX(-math.pi / 3),
                 child: child,
               ),
             ),
@@ -106,59 +120,84 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
 
   Widget _buildTile(String type, int index) {
     String emoji = '';
-    Color topColor = const Color(0xFF81C784);  // Grass Top
-    Color rightColor = const Color(0xFF388E3C); // Darker Grass Shadow
-    Color leftColor = const Color(0xFF4CAF50);  // Mid Grass Shadow
+    Color topColor = const Color(0xFF66BB6A);
+    Color rightColor = const Color(0xFF2E7D32);
+    Color leftColor = const Color(0xFF388E3C);
 
-    if (type == 'house') {
-      emoji = '🏠';
-      topColor = const Color(0xFFFFCCBC);
-      rightColor = const Color(0xFFD84315);
-      leftColor = const Color(0xFFE64A19);
-    } else if (type == 'tree') {
-      emoji = '🌴';
-    } else if (type == 'decay') {
-      emoji = '🍂';
-      topColor = const Color(0xFFD7CCC8);
-      rightColor = const Color(0xFF5D4037);
-      leftColor = const Color(0xFF795548);
-    } else if (type == 'locked') {
-      topColor = Colors.white.withValues(alpha: 0.1);
-      rightColor = Colors.transparent;
-      leftColor = Colors.transparent;
+    switch (type) {
+      case 'house':
+        emoji = '🏠';
+        topColor = const Color(0xFFFFCCBC);
+        rightColor = const Color(0xFFBF360C);
+        leftColor = const Color(0xFFD84315);
+        break;
+      case 'tree':
+        emoji = '🌴';
+        topColor = const Color(0xFF43A047);
+        rightColor = const Color(0xFF1B5E20);
+        leftColor = const Color(0xFF2E7D32);
+        break;
+      case 'flower':
+        emoji = '🌸';
+        topColor = const Color(0xFF81C784);
+        rightColor = const Color(0xFF388E3C);
+        leftColor = const Color(0xFF43A047);
+        break;
+      case 'decay':
+        emoji = '🍂';
+        topColor = const Color(0xFFBCAAA4);
+        rightColor = const Color(0xFF4E342E);
+        leftColor = const Color(0xFF6D4C41);
+        break;
+      case 'locked':
+        topColor = Colors.white.withValues(alpha: 0.05);
+        rightColor = Colors.transparent;
+        leftColor = Colors.transparent;
+        break;
     }
 
     return AnimatedBuilder(
       animation: _pulseController,
-      builder: (context, child) {
-        final double pulseY = type == 'locked' || emoji.isEmpty ? 0.0 : (_pulseController.value * 5.0);
-        
-        // Build the extruded block
-        Widget block = _buildIsometricBlock(
-          topColor, 
-          rightColor, 
-          leftColor, 
-          // The item on top
+      builder: (context, _) {
+        final double pulseY =
+            (type == 'locked' || emoji.isEmpty) ? 0.0 : (_pulseController.value * 4.0);
+
+        return _buildIsometricBlock(
+          topColor,
+          rightColor,
+          leftColor,
           Padding(
-            padding: EdgeInsets.only(bottom: pulseY), // animate floating
+            padding: EdgeInsets.only(bottom: pulseY),
             child: Text(
               emoji,
-              style: const TextStyle(fontSize: 32, shadows: [
-                 Shadow(blurRadius: 10.0, color: Colors.black45, offset: Offset(2, 5)) // Ground shadow
-              ]),
+              style: const TextStyle(
+                fontSize: 28,
+                shadows: [
+                  Shadow(
+                      blurRadius: 12.0,
+                      color: Colors.black38,
+                      offset: Offset(2, 4))
+                ],
+              ),
             ),
           ),
-        );
-
-        // Enter animation for the blocks themselves falling into place
-        return block.animate()
-               .scale(delay: Duration(milliseconds: 50 * index), duration: 600.ms, curve: Curves.easeOutBack)
-               .slideY(begin: -1.0, end: 0, delay: Duration(milliseconds: 50 * index), duration: 600.ms, curve: Curves.bounceOut);
-      }
+        )
+            .animate()
+            .scale(
+                delay: Duration(milliseconds: 40 * index),
+                duration: 500.ms,
+                curve: Curves.easeOutBack)
+            .slideY(
+                begin: -0.8,
+                end: 0,
+                delay: Duration(milliseconds: 40 * index),
+                duration: 500.ms,
+                curve: Curves.bounceOut);
+      },
     );
   }
 
-  Widget _buildIsometricIslandGrid() {
+  Widget _buildIsland() {
     if (_islandData == null) return const SizedBox.shrink();
 
     final int trees = _islandData!['trees'] ?? 0;
@@ -167,51 +206,49 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
     final int decayLevel = _islandData!['decayLevel'] ?? 0;
 
     final int totalTiles = 16 + (unlockedAreas * 4);
-    
     List<String> tiles = List.filled(totalTiles, 'grass');
-    
+
     for (int i = 0; i < decayLevel && i < tiles.length; i++) {
       tiles[i] = 'decay';
     }
-    
     int houseCount = 0;
     for (int i = 0; i < tiles.length && houseCount < houses; i++) {
-        if (tiles[i] == 'grass') {
-            tiles[i] = 'house';
-            houseCount++;
-        }
+      if (tiles[i] == 'grass') {
+        tiles[i] = 'house';
+        houseCount++;
+      }
     }
-    
     int treeCount = 0;
     for (int i = 0; i < tiles.length && treeCount < trees; i++) {
-        if (tiles[i] == 'grass') {
-            tiles[i] = 'tree';
-            treeCount++;
-        }
+      if (tiles[i] == 'grass') {
+        tiles[i] = 'tree';
+        treeCount++;
+      }
     }
 
-    int crossAxisCount = 4;
-    if (totalTiles > 24) crossAxisCount = 5;
-    if (totalTiles > 40) crossAxisCount = 6;
+    final int crossAxisCount = totalTiles > 40
+        ? 6
+        : totalTiles > 24
+            ? 5
+            : 4;
 
-    // Apply the Isometric Matrix Transform to the entire grid
     return Center(
       child: Transform(
         alignment: FractionalOffset.center,
         transform: Matrix4.identity()
-          ..setEntry(3, 2, 0.001) // Perspective depth
-          ..rotateX(math.pi / 3)   // Tilt back 60 degrees
-          ..rotateZ(-math.pi / 4), // Rotate 45 degrees
+          ..setEntry(3, 2, 0.001)
+          ..rotateX(math.pi / 3)
+          ..rotateZ(-math.pi / 4),
         child: Container(
           decoration: BoxDecoration(
             boxShadow: [
-               BoxShadow(
-                 color: Colors.black.withValues(alpha: 0.2),
-                 blurRadius: 50,
-                 spreadRadius: 10,
-                 offset: const Offset(20, 50),
-               )
-            ]
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 60,
+                spreadRadius: 10,
+                offset: const Offset(20, 60),
+              )
+            ],
           ),
           child: GridView.builder(
             padding: EdgeInsets.zero,
@@ -219,16 +256,236 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
             shrinkWrap: true,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
-              childAspectRatio: 1.0, 
-              crossAxisSpacing: 0, // No spacing so blocks touch
+              childAspectRatio: 1.0,
+              crossAxisSpacing: 0,
               mainAxisSpacing: 0,
             ),
             itemCount: totalTiles,
-            itemBuilder: (context, index) {
-              return _buildTile(tiles[index], index);
-            },
+            itemBuilder: (_, index) => _buildTile(tiles[index], index),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Sky & environment painters ──────────────────────────────────────────
+  Widget _buildSky() {
+    return Positioned.fill(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0D47A1), // deep midnight blue
+              Color(0xFF1565C0),
+              Color(0xFF1976D2),
+              Color(0xFF42A5F5), // horizon blue
+              Color(0xFF80DEEA), // near water cyan
+            ],
+            stops: [0.0, 0.2, 0.45, 0.72, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSun() {
+    return Positioned(
+      top: 60,
+      right: 40,
+      child: AnimatedBuilder(
+        animation: _pulseController,
+        builder: (_, __) {
+          final glow = 0.3 + _pulseController.value * 0.2;
+          return Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFFF176),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFF176).withValues(alpha: glow),
+                  blurRadius: 60,
+                  spreadRadius: 20,
+                ),
+                BoxShadow(
+                  color: const Color(0xFFFFD54F).withValues(alpha: glow * 0.5),
+                  blurRadius: 100,
+                  spreadRadius: 40,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCloud(double top, double animOffset, double width, double opacity) {
+    return AnimatedBuilder(
+      animation: _cloudController,
+      builder: (_, __) {
+        final x = (MediaQuery.of(context).size.width + 100) *
+                _cloudController.value -
+            50 +
+            animOffset;
+        return Positioned(
+          top: top,
+          left: x % (MediaQuery.of(context).size.width + 200) - 100,
+          child: Opacity(
+            opacity: opacity,
+            child: Container(
+              width: width,
+              height: width * 0.4,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(width),
+                color: Colors.white.withValues(alpha: 0.85),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOcean() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: AnimatedBuilder(
+        animation: _waveController,
+        builder: (_, __) {
+          final wave = _waveController.value;
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.28,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF29B6F6).withValues(alpha: 0.0),
+                  const Color(0xFF0288D1).withValues(alpha: 0.6 + wave * 0.1),
+                  const Color(0xFF01579B).withValues(alpha: 0.9),
+                  const Color(0xFF003F72),
+                ],
+              ),
+            ),
+            child: CustomPaint(
+              painter: _WavePainter(wave),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatsPanel() {
+    final trees = _islandData?['trees'] ?? 0;
+    final houses = _islandData?['houses'] ?? 0;
+    final decay = _islandData?['decayLevel'] ?? 0;
+    final unlocked = _islandData?['unlockedAreas'] ?? 0;
+
+    return Positioned(
+      top: 0,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildStatChip('🌴', '$trees', 'Trees'),
+            _buildVerticalDivider(),
+            _buildStatChip('🏠', '$houses', 'Houses'),
+            _buildVerticalDivider(),
+            _buildStatChip('🗺️', '$unlocked', 'Areas'),
+            _buildVerticalDivider(),
+            _buildStatChip('🍂', '$decay', 'Decay'),
+          ],
+        ),
+      ).animate().fade(duration: 600.ms).slideY(begin: -0.3, end: 0),
+    );
+  }
+
+  Widget _buildVerticalDivider() {
+    return Container(
+      width: 1,
+      height: 30,
+      color: Colors.white.withValues(alpha: 0.2),
+    );
+  }
+
+  Widget _buildStatChip(String emoji, String count, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(height: 2),
+        Text(
+          count,
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 9,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomHint() {
+    return Positioned(
+      bottom: MediaQuery.of(context).size.height * 0.28 + 16,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '🏆 Complete habits to grow your island',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ).animate().fade(delay: 800.ms),
       ),
     );
   }
@@ -236,132 +493,138 @@ class _IslandScreenState extends State<IslandScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA), // Soft ocean blue sky
+      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0D47A1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF006064)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'My 3D Island 🌴',
+          'Habit Island 🌴',
           style: GoogleFonts.poppins(
-            color: const Color(0xFF006064),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 20,
+            shadows: [
+              const Shadow(
+                  blurRadius: 10, color: Colors.black38, offset: Offset(0, 2))
+            ],
           ),
         ),
         centerTitle: true,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF00838F)))
-        : Stack(
-          children: [
-            // Ambient Ocean Background
-            Positioned(
-              bottom: 0,
-              left: -50,
-              right: -50,
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.5,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFFB2EBF2).withValues(alpha: 0.0),
-                      const Color(0xFF4DD0E1).withValues(alpha: 0.5),
-                      const Color(0xFF00BCD4).withValues(alpha: 0.8),
-                    ]
-                  )
+      body: _isLoading
+          ? Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF0D47A1), Color(0xFF01579B)],
                 ),
               ),
-            ),
-            
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  // Island Stats Header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00838F).withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStat('🌴', _islandData?['trees']?.toString() ?? '0', 'Trees'),
-                          _buildStat('🏠', _islandData?['houses']?.toString() ?? '0', 'Houses'),
-                          _buildStat('🍂', _islandData?['decayLevel']?.toString() ?? '0', 'Decay'),
-                        ],
-                      ),
-                    ).animate().fade(duration: 500.ms).slideY(begin: -0.2, end: 0),
-                  ),
-                  
-                  const SizedBox(height: 60),
-                  
-                  // The 3D Island Render Zone
-                  SizedBox(
-                    height: 400, // Fixed height for the 3D projection to fit
-                    child: _buildIsometricIslandGrid(),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  Text(
-                    'Complete habits to grow your island!\nBad habits will cause decay.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: const Color(0xFF006064).withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ).animate().fade(delay: 600.ms),
-                  
-                  const SizedBox(height: 40),
-                ],
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
               ),
-            ),
-          ],
-        ),
-    );
-  }
+            )
+          : Stack(
+              children: [
+                _buildSky(),
+                _buildSun(),
+                _buildCloud(80, 0, 120, 0.7),
+                _buildCloud(110, 300, 80, 0.5),
+                _buildCloud(50, 600, 100, 0.6),
+                _buildOcean(),
 
-  Widget _buildStat(String emoji, String count, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(height: 4),
-        Text(
-          count,
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF00838F),
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: const Color(0xFF006064).withValues(alpha: 0.6),
-          ),
-        ),
-      ],
+                // Island grid in center
+                Positioned(
+                  top: kToolbarHeight + 80,
+                  left: 0,
+                  right: 0,
+                  height: MediaQuery.of(context).size.height * 0.5,
+                  child: _buildIsland(),
+                ),
+
+                // Stats panel just below the app bar
+                Positioned(
+                  top: kToolbarHeight + MediaQuery.of(context).padding.top + 4,
+                  left: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatChip('🌴',
+                            '${_islandData?['trees'] ?? 0}', 'Trees'),
+                        _buildVerticalDivider(),
+                        _buildStatChip('🏠',
+                            '${_islandData?['houses'] ?? 0}', 'Houses'),
+                        _buildVerticalDivider(),
+                        _buildStatChip('🗺️',
+                            '${_islandData?['unlockedAreas'] ?? 0}', 'Areas'),
+                        _buildVerticalDivider(),
+                        _buildStatChip('🍂',
+                            '${_islandData?['decayLevel'] ?? 0}', 'Decay'),
+                      ],
+                    ),
+                  ).animate().fade(duration: 600.ms).slideY(begin: -0.3, end: 0),
+                ),
+
+                _buildBottomHint(),
+              ],
+            ),
     );
   }
 }
 
+// ── Wave effect painter ────────────────────────────────────────────────────
+class _WavePainter extends CustomPainter {
+  final double phase;
+  _WavePainter(this.phase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+
+    for (int w = 0; w < 3; w++) {
+      final path = Path();
+      final offset = phase * size.width * 0.3 + w * 60.0;
+      path.moveTo(0, size.height * 0.3);
+      for (double x = 0; x <= size.width; x++) {
+        final y = size.height * 0.25 +
+            math.sin((x / size.width * 2 * math.pi) + offset / 50) *
+                (8.0 - w * 2);
+        path.lineTo(x, y);
+      }
+      path.lineTo(size.width, size.height);
+      path.lineTo(0, size.height);
+      path.close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) => old.phase != phase;
+}
