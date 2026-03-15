@@ -30,6 +30,8 @@ dependencies:
   percent_indicator: ^4.2.5
   fl_chart: ^0.66.2
   app_links: ^6.1.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:

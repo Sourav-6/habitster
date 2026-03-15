@@ -10,6 +10,7 @@ import 'screens/obs/onboarding_screen.dart';
 import 'screens/accountCreation/signupin.dart';
 import 'services/api_service.dart';
 import 'theme/theme_provider.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,12 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('chat_sessions');
 
+  // Initialize Notifications
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
+  await notificationService.scheduleDailyHabitReminders();
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(
@@ -41,8 +48,6 @@ void main() async {
     ),
   );
 }
-
-
 
 class MyApp extends StatefulWidget {
   final bool showOnboarding;

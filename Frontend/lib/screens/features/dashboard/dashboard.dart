@@ -1250,32 +1250,36 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTopHeader(),
-                    // Row: Energy+Streak (left) ←→ Weather (right)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildEnergyStreakCard()),
-                        _buildWeatherWidget(),
-                      ],
-                    ),
-                    _buildGreeting(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 8),
                     
+                    // Greeting with avatar on the right
+                    _buildGreeting(),
+                    const SizedBox(height: 24),
+
+                    // Date timeline strip
                     _buildDateTimeline().animate().fade(duration: 500.ms).slideX(begin: 0.05, end: 0),
                     const SizedBox(height: 24),
-                    
+
+                    // Level / XP card
+                    _buildLevelSection(),
+                    const SizedBox(height: 16),
+
+                    // Energy | Freezes | Best Streak stats row
+                    _buildStatsSection(),
+                    const SizedBox(height: 24),
+
+                    // Favourite habit cards
                     _buildHabitCards(),
-                    const SizedBox(height: 32),
-                    
+                    const SizedBox(height: 24),
+
                     // Daily Learning Gamification Card
                     DailyLearningCard(
                       onXpGained: () {
-                        // Refresh the profile to reflect the new XP and Level in the header
                         _loadProfile();
                       },
                     ).animate().fade(duration: 800.ms, delay: 300.ms).slideY(begin: 0.1, end: 0),
                     
-                    const SizedBox(height: 16), // Less gap to keep cards tight
+                    const SizedBox(height: 16),
                     
                     _isLoadingMood 
                         ? const SizedBox.shrink() 

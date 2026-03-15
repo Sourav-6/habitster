@@ -92,6 +92,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
         } else {
            await _apiService.updateIslandState('addTree', amount: 1);
         }
+        // Track total completions for island expansion
+        await _apiService.updateIslandState('addCompletion');
       } catch (islandErr) {
         debugPrint('Island Gamification update failed: \$islandErr');
       }
@@ -146,12 +148,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: GlassCard(
-              padding: const EdgeInsets.all(32),
-              borderRadius: 32,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            child: Material(
+              color: Colors.transparent,
+              child: GlassCard(
+                padding: const EdgeInsets.all(32),
+                borderRadius: 32,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -257,10 +261,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   // Inside _HabitDetailScreenState class
 
@@ -312,13 +317,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
           return Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GlassCard(
-                padding: const EdgeInsets.all(16),
-                borderRadius: 24,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
+              child: Material(
+                color: Colors.transparent,
+                child: GlassCard(
+                  padding: const EdgeInsets.all(16),
+                  borderRadius: 24,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                         "Activity History",
@@ -396,11 +403,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
                 ),
               ),
             ),
-          );
-        });
-      },
-    );
-  }
+          ),
+        );
+      });
+    },
+  );
+}
 
   // Helper for table_calendar to mark completed days
   List<dynamic> _getEventsForDay(DateTime day) {
@@ -1554,13 +1562,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
               child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(24),
-                    borderRadius: 24,
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(24),
+                      borderRadius: 24,
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -1737,12 +1747,13 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with TickerProvid
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-    subtaskNameController.dispose();
+            ),
+          );
+        },
+      );
+    },
+  );
+  subtaskNameController.dispose();
     newGroupNameController.dispose();
     return newSubtaskData;
   }

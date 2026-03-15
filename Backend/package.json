@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "duck-duck-scrape": "^2.2.7",
     "express": "^5.1.0",

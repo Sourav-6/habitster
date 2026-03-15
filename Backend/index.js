@@ -1,6 +1,8 @@
 const express = require("express");
+const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const app = express();
+app.use(cors());
 app.use(cookieParser());
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
@@ -1023,6 +1025,41 @@ app.post("/api/habits/:habitId/complete", authMiddleware, async (req, res) => {
     const promisesToWait = [habitUpdatePromise, historyPromise];
     if (profileToUpdate) promisesToWait.push(profileToUpdate);
 
+    // --- ISLAND EXPANSION LOGIC ---
+    try {
+      const islandResponse = await databases.listDocuments(
+        DATABASE_ID,
+        ISLAND_COLLECTION_ID,
+        [Appwrite.Query.equal("userId", userId), Appwrite.Query.limit(1)]
+      );
+
+      if (islandResponse.total > 0) {
+        const island = islandResponse.documents[0];
+        const currentCompletions = (island.totalHabitCompletions || 0) + 1;
+        let newUnlockedAreas = island.unlockedAreas || 0;
+
+        // Unlock 1 new area every 5 habit completions (threshold)
+        if (currentCompletions > 0 && currentCompletions % 5 === 0) {
+          newUnlockedAreas += 1;
+          console.log(`Island expanded for user ${userId}! New unlocked areas: ${newUnlockedAreas}`);
+        }
+
+        const islandUpdatePromise = databases.updateDocument(
+          DATABASE_ID,
+          ISLAND_COLLECTION_ID,
+          island.$id,
+          {
+            totalHabitCompletions: currentCompletions,
+            unlockedAreas: newUnlockedAreas,
+          }
+        );
+        promisesToWait.push(islandUpdatePromise);
+      }
+    } catch (islandErr) {
+      console.error("Error updating island on habit completion:", islandErr.message);
+    }
+    // --- END ISLAND EXPANSION LOGIC ---
+
     const results = await Promise.all(promisesToWait);
     const updatedHabit = results[0];
 
@@ -1672,7 +1709,8 @@ app.get("/api/island", authMiddleware, async (req, res) => {
           trees: 0,
           houses: 0,
           unlockedAreas: 0,
-          decayLevel: 0
+          decayLevel: 0,
+          totalHabitCompletions: 0
         }
       );
       return res.status(200).json(newIsland);
@@ -1719,7 +1757,8 @@ app.post("/api/island/update", authMiddleware, async (req, res) => {
           trees: 0,
           houses: 0,
           unlockedAreas: 0,
-          decayLevel: 0
+          decayLevel: 0,
+          totalHabitCompletions: 0
         }
       );
       docId = newIsland.$id;
@@ -1729,7 +1768,7 @@ app.post("/api/island/update", authMiddleware, async (req, res) => {
     let updates = {};
     if (action === 'addTree') {
       updates.trees = currentData.trees + amount;
-      if (currentData.decayLevel > 0) updates.decayLevel = Math.max(0, currentData.decayLevel - amount); // Good habits reduce decay
+      if (currentData.decayLevel > 0) updates.decayLevel = Math.max(0, currentData.decayLevel - amount);
     } else if (action === 'addHouse') {
       updates.houses = currentData.houses + amount;
     } else if (action === 'unlockArea') {
@@ -1738,9 +1777,26 @@ app.post("/api/island/update", authMiddleware, async (req, res) => {
       updates.decayLevel = currentData.decayLevel + amount;
     } else if (action === 'removeDecay') {
       updates.decayLevel = Math.max(0, currentData.decayLevel - amount);
+    } else if (action === 'addCompletion') {
+      updates.totalHabitCompletions = (currentData.totalHabitCompletions || 0) + amount;
     } else {
       return res.status(400).json({ message: "Invalid action type" });
     }
+
+    // --- AUTO-EXPANSION LOGIC ---
+    // Rule: Unlock 1 area for every 25 trees, 5 houses, or 10 completions
+    const finalTrees = updates.trees !== undefined ? updates.trees : currentData.trees;
+    const finalHouses = updates.houses !== undefined ? updates.houses : currentData.houses;
+    const finalCompletions = updates.totalHabitCompletions !== undefined ? updates.totalHabitCompletions : (currentData.totalHabitCompletions || 0);
+
+    const calculatedAreas = Math.floor(finalTrees / 25) + Math.floor(finalHouses / 5) + Math.floor(finalCompletions / 10);
+    
+    // If the calculated areas based on thresholds exceed current unlocked areas, update it
+    if (calculatedAreas > currentData.unlockedAreas && updates.unlockedAreas === undefined) {
+      updates.unlockedAreas = calculatedAreas;
+      console.log(`Auto-expanding island for user ${userId}: New total areas: ${calculatedAreas}`);
+    }
+    // ----------------------------
 
     const updatedDoc = await databases.updateDocument(
       DATABASE_ID,

@@ -524,6 +524,11 @@ class _IslandScreenState extends State<IslandScreen>
     final houses = data['houses'] ?? 0;
     final decay = data['decayLevel'] ?? 0;
     final unlocked = data['unlockedAreas'] ?? 0;
+    final completions = data['totalHabitCompletions'] ?? 0;
+
+    // Expansion logic: 1 area per 5 completions
+    final int completionsForNext = 5 - ((completions as int) % 5);
+    final double progress = ((completions as int) % 5) / 5.0;
 
     return Positioned(
       bottom: 40,
@@ -550,16 +555,66 @@ class _IslandScreenState extends State<IslandScreen>
           borderRadius: BorderRadius.circular(30),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildStatChip('🌴', '$trees', 'Trees'),
-                _buildVerticalDivider(),
-                _buildStatChip('🏠', '$houses', 'Houses'),
-                _buildVerticalDivider(),
-                _buildStatChip('🗺️', '$unlocked', 'Areas'),
-                _buildVerticalDivider(),
-                _buildStatChip('🍂', '$decay', 'Decay'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatChip('🌴', '$trees', 'Trees'),
+                    _buildVerticalDivider(),
+                    _buildStatChip('🏠', '$houses', 'Houses'),
+                    _buildVerticalDivider(),
+                    _buildStatChip('🗺️', '$unlocked', 'Areas'),
+                    _buildVerticalDivider(),
+                    _buildStatChip('✅', '$completions', 'Done'),
+                    _buildVerticalDivider(),
+                    _buildStatChip('🍂', '$decay', 'Decay'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Progress bar for next expansion
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: progress.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$completionsForNext to expand',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

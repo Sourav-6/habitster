@@ -38,6 +38,7 @@ async function setupIslandSchema() {
             () => databases.createIntegerAttribute(DATABASE_ID, ISLAND_COLLECTION, "houses", false, 0, 1000000, 0),
             () => databases.createIntegerAttribute(DATABASE_ID, ISLAND_COLLECTION, "unlockedAreas", false, 0, 100, 0),
             () => databases.createIntegerAttribute(DATABASE_ID, ISLAND_COLLECTION, "decayLevel", false, 0, 100, 0),
+            () => databases.createIntegerAttribute(DATABASE_ID, ISLAND_COLLECTION, "totalHabitCompletions", false, 0, 1000000, 0),
         ];
 
         for (const addAttr of islandAttributes) {

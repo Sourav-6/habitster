@@ -31,6 +31,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
   final TextEditingController _habitNameController = TextEditingController();
   final TextEditingController _durationValueController = TextEditingController();
   final TextEditingController _frequencyValueController = TextEditingController();
+  final List<TextEditingController> _subtaskControllers = [];
 
   // State variables
   DateTime _startDate = DateTime.now();
@@ -51,6 +52,9 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
     _habitNameController.dispose();
     _durationValueController.dispose();
     _frequencyValueController.dispose();
+    for (var controller in _subtaskControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -120,6 +124,22 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
 
     try {
       final newHabit = await _apiService.createHabit(habitData);
+      
+      // Create valid subtasks if any
+      final habitId = newHabit['\$id'];
+      if (habitId != null) {
+        for (var controller in _subtaskControllers) {
+          final subtaskName = controller.text.trim();
+          if (subtaskName.isNotEmpty) {
+            await _apiService.createSubtask({
+              'habitId': habitId,
+              'subtaskName': subtaskName,
+              'isRequired': true, // Defaulting to true for basic subtasks
+            });
+          }
+        }
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -379,7 +399,65 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                       ).animate().fade().scale(),
                     ],
 
+                    _buildSectionTitle('Duration').animate().fade(delay: 280.ms).slideY(begin: 0.1),
+
+                    // Duration row: number input + days/weeks/months chips
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Number input
+                        SizedBox(
+                          width: 110,
+                          child: TextFormField(
+                            controller: _durationValueController,
+                            style: GoogleFonts.poppins(fontSize: 16),
+                            decoration: InputDecoration(
+                              hintText: '30',
+                              hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+                              prefixIcon: const Icon(Icons.timer_outlined, color: AppColors.primaryColor),
+                              filled: true,
+                              fillColor: AppColors.getCardColor(context).withAlpha(150),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Required';
+                              final n = int.tryParse(v.trim());
+                              if (n == null || n <= 0) return 'Enter a valid number';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Unit chips
+                        Expanded(
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: _durations.map((unit) =>
+                              _buildChoiceChip(
+                                unit[0].toUpperCase() + unit.substring(1),
+                                _selectedDurationUnit == unit,
+                                () => setState(() => _selectedDurationUnit = unit),
+                              ),
+                            ).toList(),
+                          ),
+                        ),
+                      ],
+                    ).animate().fade(delay: 290.ms).slideY(begin: 0.1),
+
+                    const SizedBox(height: 8),
+
                     _buildSectionTitle('Gamification').animate().fade(delay: 300.ms).slideY(begin: 0.1),
+
 
                     Text('Category', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13)),
                     const SizedBox(height: 8),
@@ -404,6 +482,51 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                         child: _buildChoiceChip(diff, _selectedDifficulty == diff, () => setState(() => _selectedDifficulty = diff)),
                       )).toList(),
                     ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
+
+                    _buildSectionTitle('Subtasks').animate().fade(delay: 450.ms).slideY(begin: 0.1),
+                    
+                    // Render dynamic subtask text fields
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _subtaskControllers.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _subtaskControllers[index],
+                                  style: GoogleFonts.poppins(fontSize: 14),
+                                  decoration: _customInputDecoration('Subtask name', Icons.check_circle_outline)
+                                    .copyWith(contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16)),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                                onPressed: () {
+                                  setState(() {
+                                    _subtaskControllers[index].dispose();
+                                    _subtaskControllers.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ],
+                          ).animate().fade().slideX(begin: 0.05),
+                        );
+                      },
+                    ),
+                    
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _subtaskControllers.add(TextEditingController());
+                        });
+                      },
+                      icon: const Icon(Icons.add, color: AppColors.primaryColor),
+                      label: Text('Add Subtask', style: GoogleFonts.poppins(color: AppColors.primaryColor, fontWeight: FontWeight.bold)),
+                    ).animate().fade(delay: 480.ms),
 
                     const SizedBox(height: 48),
 
